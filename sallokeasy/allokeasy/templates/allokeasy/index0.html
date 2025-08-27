@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio UI</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9fafb;
+      margin: 0;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    .card {
+      background: white;
+      padding: 1.5rem;
+      border: 1px solid #ddd;
+      border-radius: 1rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    h2 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      font-size: 1.25rem;
+    }
+    input[type="file"], input[type="text"] {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 0.5rem;
+    }
+    .grid {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    ul {
+      padding-left: 1.25rem;
+    }
+    .boxes {
+      display: grid;
+      gap: 1rem;
+    }
+    @media (min-width: 768px) {
+      .boxes {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+    .box {
+      text-align: center;
+      padding: 2rem;
+      border: 1px solid #ddd;
+      border-radius: 1rem;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- 1. CSV Upload -->
+    <div class="card">
+      <h2>Upload CSV</h2>
+      <input type="file" accept=".csv">
+    </div>
+
+    <!-- 2. Input Area -->
+    <div class="card">
+      <h2>Input Values</h2>
+      <div class="grid grid-2">
+        <input type="text" placeholder="Input 1">
+        <input type="text" placeholder="Input 2">
+        <input type="text" placeholder="Input 3">
+        <input type="text" placeholder="Input 4">
+        <input type="text" placeholder="Input 5">
+        <input type="text" placeholder="Input 6">
+      </div>
+      <button id="submitBtn">Submit</button>
+    </div>
+
+    <!-- 3. Allocations Table -->
+    <div class="card">
+      <h2>Allocations</h2>
+      <div class="grid grid-2">
+        <div><strong>Name</strong></div>
+        <div><strong>Percentage</strong></div>
+        <div>Name</div><div>Percentage</div>
+        <div>Name</div><div>Percentage</div>
+        <div>Name</div><div>Percentage</div>
+      </div>
+    </div>
+
+    <!-- 4. Results (hidden initially) -->
+    <div id="results" class="card" style="display:none;">
+      <h2>Results</h2>
+      <ul>
+        <li>Expected returns</li>
+        <li>Expected volatility</li>
+        <li>Sharpe ratio</li>
+      </ul>
+    </div>
+
+    <!-- 5. Boxes (hidden initially) -->
+    <div id="boxes" class="boxes" style="display:none;">
+      <div class="box"><h3>No changes</h3></div>
+      <div class="box"><h3>Tax optimized changes</h3></div>
+      <div class="box"><h3>Starting from scratch allocation</h3></div>
+    </div>
+  </div>
+
+  <script>
+<script>
+  // Handle CSV upload
+  const csvSubmit = document.getElementById("csvSubmit");
+  const csvFileInput = document.getElementById("csvFile");
+  const csvStatus = document.getElementById("csvStatus");
+
+  csvSubmit.addEventListener("click", async () => {
+    const file = csvFileInput.files[0];
+    if (!file) {
+      alert("Please choose a CSV file first.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("/upload-csv/", {
+        method: "POST",
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        csvStatus.textContent = "CSV uploaded successfully!";
+        csvStatus.style.color = "green";
+
+        // Display returned allocations in console (or inject into DOM)
+        console.log("Parsed allocations:", data.allocations);
+
+        // Example: replace allocations table dynamically
+        const allocDiv = document.querySelector(".card:nth-of-type(3) .grid");
+        allocDiv.innerHTML = "<div><strong>Name</strong></div><div><strong>Percentage</strong></div>";
+        data.allocations.forEach(row => {
+          allocDiv.innerHTML += `<div>${row.name}</div><div>${row.percentage}</div>`;
+        });
+
+      } else {
+        csvStatus.textContent = "Error uploading CSV.";
+        csvStatus.style.color = "red";
+      }
+    } catch (err) {
+      csvStatus.textContent = "Network error.";
+      csvStatus.style.color = "red";
+    }
+  });
+
+    const submitBtn = document.getElementById("submitBtn");
+    const results = document.getElementById("results");
+    const boxes = document.getElementById("boxes");
+
+    submitBtn.addEventListener("click", () => {
+      results.style.display = "block";
+      boxes.style.display = "grid";
+    });
+  </script>
+</body>
+</html>
