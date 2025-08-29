@@ -4,7 +4,7 @@ import pandas as pd
 from scipy.optimize import minimize
 from datetime import datetime, timedelta
 import random
-from csv_parser.vanguard import parse_cost_basis_vanguard_csv
+from csv_parser.vanguard import Lot, parse_cost_basis_vanguard_csv
 
 # --- Setup ---
 # tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
@@ -42,36 +42,36 @@ def get_ltcg_tax_rate(income, filing_status='single'):
             return 0.20
 
 # Simulate current holdings with lots (you can modify these based on your actual holdings)
-def create_sample_lots():
-    lots = []
-    current_prices = {}
+# def create_sample_lots():
+#     lots = []
+#     current_prices = {}
     
-    # Get current prices for calculations
-    try:
-        current_data = yf.download(tickers, start=datetime.now() - timedelta(days=5), end=datetime.now())['Close']
-        current_prices = current_data.iloc[-1]
-    except:
-        # Fallback prices if download fails
-        current_prices = {'AAPL': 180, 'MSFT': 380, 'GOOGL': 140, 'AMZN': 150, 'TSLA': 200}
+#     # Get current prices for calculations
+#     try:
+#         current_data = yf.download(tickers, start=datetime.now() - timedelta(days=5), end=datetime.now())['Close']
+#         current_prices = current_data.iloc[-1]
+#     except:
+#         # Fallback prices if download fails
+#         current_prices = {'AAPL': 180, 'MSFT': 380, 'GOOGL': 140, 'AMZN': 150, 'TSLA': 200}
     
-    # Create sample lots for each ticker
-    for ticker in tickers:
-        # Simulate multiple lots with different cost bases
-        num_lots = random.randint(2, 4)
-        total_shares = 1000  # Total shares per ticker
+#     # Create sample lots for each ticker
+#     for ticker in tickers:
+#         # Simulate multiple lots with different cost bases
+#         num_lots = random.randint(2, 4)
+#         total_shares = 1000  # Total shares per ticker
         
-        for i in range(num_lots):
-            shares = total_shares // num_lots
-            if i == num_lots - 1:  # Last lot gets remaining shares
-                shares = total_shares - sum(lot.shares for lot in lots if lot.ticker == ticker)
+#         for i in range(num_lots):
+#             shares = total_shares // num_lots
+#             if i == num_lots - 1:  # Last lot gets remaining shares
+#                 shares = total_shares - sum(lot.shares for lot in lots if lot.ticker == ticker)
             
-            # Simulate different purchase dates and cost bases
-            purchase_date = datetime.now() - timedelta(days=random.randint(30, 1000))
-            cost_basis = current_prices[ticker] * random.uniform(0.5, 1.5)  # 50% to 150% of current price
+#             # Simulate different purchase dates and cost bases
+#             purchase_date = datetime.now() - timedelta(days=random.randint(30, 1000))
+#             cost_basis = current_prices[ticker] * random.uniform(0.5, 1.5)  # 50% to 150% of current price
             
-            lots.append(Lot(ticker, shares, cost_basis, purchase_date))
+#             lots.append(Lot(ticker, shares, cost_basis, purchase_date))
     
-    return lots
+#     return lots
 
 # --- Download price data ---
 print("Downloading market data...")
@@ -96,75 +96,64 @@ def portfolio_performance(weights):
     std = np.sqrt(weights.T @ cov_matrix.values @ weights)
     return ret, std
 
-def calculate_lot_based_tax(lots, target_weights, current_prices, tax_rate):
+def calculate_lot_based_tax(lots_by_ticker, target_weights, current_prices, tax_rate):
     """
     Calculate tax cost using lot-based selling (FIFO method)
     Returns: total tax cost, lots to sell, and remaining lots
     """
-    total_portfolio_value = sum(lot.shares * current_prices[lot.ticker] for lot in lots)
+
+    total_portfolio_value = sum(sum(lot.quantity * current_prices[ticker] for lot in lots) for ticker, lots in lots_by_ticker.items())
     target_values = {ticker: target_weights[i] * total_portfolio_value for i, ticker in enumerate(tickers)}
-    
-    # Group lots by ticker
-    lots_by_ticker = {}
-    for lot in lots:
-        if lot.ticker not in lots_by_ticker:
-            lots_by_ticker[lot.ticker] = []
-        lots_by_ticker[lot.ticker].append(lot)
-    
-    # Sort lots by purchase date (FIFO)
-    for ticker in lots_by_ticker:
-        # MinTax sorting method
-        lots_by_ticker[ticker].sort(key=lambda x: x.cost_basis - x.shares*current_prices[ticker])
     
     total_tax = 0
     lots_to_sell = []
     remaining_lots = []
     
     for ticker in tickers:
-        current_value = sum(lot.shares * current_prices[ticker] for lot in lots_by_ticker.get(ticker, []))
+        current_value = sum(lot.quantity * current_prices[ticker] for lot in lots_by_ticker[ticker])
         target_value = target_values[ticker]
         
+        # use a while loop instead?
         if current_value > target_value:
-            # Need to sell some shares
-            shares_to_sell = (current_value - target_value) / current_prices[ticker]
-            shares_sold = 0
+            quantity_to_sell = (current_value - target_value) / current_prices[ticker]
+            quantity_sold = 0
             ticker_tax = 0
             
             for lot in lots_by_ticker[ticker]:
-                if shares_sold >= shares_to_sell:
+                if quantity_sold >= quantity_to_sell:
                     remaining_lots.append(lot)
                     continue
                 
-                shares_available = lot.shares
-                shares_from_this_lot = min(shares_available, shares_to_sell - shares_sold)
+                quantity_available = lot.quantity
+                quantity_from_this_lot = min(quantity_available, quantity_to_sell - quantity_sold)
                 
-                if shares_from_this_lot > 0:
+                if quantity_from_this_lot > 0:
                     # Calculate gain/loss on this lot
-                    gain_per_share = current_prices[ticker] - lot.cost_basis
-                    if gain_per_share > 0:  # Only tax gains
-                        lot_tax = shares_from_this_lot * gain_per_share * tax_rate
+                    gain_per_quantity = current_prices[ticker] - lot.cost_basis
+                    if gain_per_quantity > 0:  # Only tax gains
+                        lot_tax = quantity_from_this_lot * gain_per_quantity * tax_rate
                         ticker_tax += lot_tax
                     
-                    shares_sold += shares_from_this_lot
+                    quantity_sold += quantity_from_this_lot
                     
-                    if shares_from_this_lot < shares_available:
+                    if quantity_from_this_lot < quantity_available:
                         # Partial lot sale
-                        remaining_shares = shares_available - shares_from_this_lot
-                        remaining_lots.append(Lot(ticker, remaining_shares, lot.cost_basis, lot.purchase_date))
+                        remaining_quantity = quantity_available - quantity_from_this_lot
+                        remaining_lots.append(Lot(remaining_quantity, lot.cost_basis))
                     
                     lots_to_sell.append({
                         'ticker': ticker,
-                        'shares': shares_from_this_lot,
+                        'quantity': quantity_from_this_lot,
                         'cost_basis': lot.cost_basis,
                         'sale_price': current_prices[ticker],
-                        'gain': gain_per_share * shares_from_this_lot,
-                        'tax': lot_tax if gain_per_share > 0 else 0
+                        'gain': gain_per_quantity * quantity_from_this_lot,
+                        'tax': lot_tax if gain_per_quantity > 0 else 0
                     })
             
             total_tax += ticker_tax
         else:
             # Keep all lots for this ticker
-            remaining_lots.extend(lots_by_ticker.get(ticker, []))
+            remaining_lots.extend(lots_by_ticker[ticker])
     
     return total_tax, lots_to_sell, remaining_lots
 
@@ -177,7 +166,7 @@ def neg_sharpe_without_cost(weights):
 def neg_sharpe_with_lot_based_tax(weights):
     """Optimization function with lot-based tax consideration"""
     ret, std = portfolio_performance(weights)
-    tax_cost, _, _ = calculate_lot_based_tax(lots, weights, current_prices, ltcg_tax_rate)
+    tax_cost, _, _ = calculate_lot_based_tax(lots_by_ticker, weights, current_prices, ltcg_tax_rate)
     adjusted_ret = ret - (tax_cost / total_portfolio_value)
     sharpe = (adjusted_ret - risk_free_rate) / std
     return -sharpe
@@ -204,7 +193,7 @@ sharpe_current = (ret_current - risk_free_rate) / std_current
 
 print(f"\n=== CURRENT PORTFOLIO ===")
 for i, ticker in enumerate(tickers):
-    ticker_value = sum(lot.shares * current_prices[ticker] for lot in lots if lot.ticker == ticker)
+    ticker_value = sum(lot.quantity * current_prices[ticker] for lot in lots_by_ticker[ticker])
     print(f"  {ticker}: {current_weights[i]:.2%} (${ticker_value:,.2f})")
 
 print(f"Expected Return: {ret_current:.2%}")
@@ -242,14 +231,14 @@ else:
 # --- 2. Tax Calculation for Optimal Portfolio ---
 print(f"\n=== 2. TAX CALCULATION FOR OPTIMAL PORTFOLIO ===")
 if result_optimal.success:
-    tax_cost, lots_to_sell, remaining_lots = calculate_lot_based_tax(lots, weights_optimal, current_prices, ltcg_tax_rate)
+    tax_cost, lots_to_sell, remaining_lots = calculate_lot_based_tax(lots_by_ticker, weights_optimal, current_prices, ltcg_tax_rate)
     
     print(f"Total Tax Cost: ${tax_cost:,.2f}")
     print(f"Tax Cost as % of Portfolio: {tax_cost/total_portfolio_value:.2%}")
     
     print("\nLots to Sell (FIFO Method):")
     for lot_sale in lots_to_sell:
-        print(f"  {lot_sale['ticker']}: {lot_sale['shares']:.0f} shares at ${lot_sale['cost_basis']:.2f} cost basis")
+        print(f"  {lot_sale['ticker']}: {lot_sale['quantity']:.0f} shares at ${lot_sale['cost_basis']:.2f} cost basis")
         print(f"    Sale Price: ${lot_sale['sale_price']:.2f}, Gain: ${lot_sale['gain']:.2f}, Tax: ${lot_sale['tax']:.2f}")
     
     print(f"\nRemaining Lots: {len(remaining_lots)} lots")
@@ -268,7 +257,7 @@ if result_tax_optimal.success:
     weights_tax_optimal = result_tax_optimal.x
     ret_tax_optimal, std_tax_optimal = portfolio_performance(weights_tax_optimal)
     tax_cost_tax_optimal, lots_to_sell_tax_optimal, remaining_lots_tax_optimal = calculate_lot_based_tax(
-        lots, weights_tax_optimal, current_prices, ltcg_tax_rate
+        lots_by_ticker, weights_tax_optimal, current_prices, ltcg_tax_rate
     )
     adjusted_ret_tax_optimal = ret_tax_optimal - (tax_cost_tax_optimal / total_portfolio_value)
     sharpe_tax_optimal = (adjusted_ret_tax_optimal - risk_free_rate) / std_tax_optimal
@@ -285,7 +274,7 @@ if result_tax_optimal.success:
     
     print(f"\nTax-Aware Lots to Sell:")
     for lot_sale in lots_to_sell_tax_optimal:
-        print(f"  {lot_sale['ticker']}: {lot_sale['shares']:.0f} shares, Tax: ${lot_sale['tax']:.2f}")
+        print(f"  {lot_sale['ticker']}: {lot_sale['quantity']:.2f} shares, Tax: ${lot_sale['tax']:.2f}")
     
     print(f"\nTotal Tax Cost (Tax-Aware): ${tax_cost_tax_optimal:,.2f}")
 else:
