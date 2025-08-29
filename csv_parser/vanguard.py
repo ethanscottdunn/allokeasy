@@ -13,7 +13,7 @@ class Lot:
     def __repr__(self):
     	return f'{self.quantity=}, {self.cost_basis=}'
 
-def parse_cost_basis_vanguard_csv():
+def parse_cost_basis_vanguard_csv(csv_file_path):
 
 	lots_by_ticker: Dict[str, list[Lot]] = {}
 
@@ -33,3 +33,8 @@ def parse_cost_basis_vanguard_csv():
 			lots.sort(key=lambda x: x.cost_basis/x.quantity)
 
 	return lots_by_ticker
+
+def parse_cost_basis_vanguard_csv_by_ticker(csv_file_path):
+
+	lots_by_ticker = parse_cost_basis_vanguard_csv(csv_file_path)
+	return {ticker: sum(lot.quantity for lot in lots) for ticker, lots in lots_by_ticker.items()}
