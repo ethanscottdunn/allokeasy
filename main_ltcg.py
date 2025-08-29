@@ -4,7 +4,7 @@ import pandas as pd
 from scipy.optimize import minimize
 
 # --- Setup ---
-tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
+tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'VTSAX']
 start_date = '2020-01-01'
 end_date = '2025-01-01'
 risk_free_rate = 0.02
@@ -17,7 +17,7 @@ mean_returns = returns.mean() * 252
 cov_matrix = returns.cov() * 252
 
 # --- Current holdings (your existing portfolio) ---
-current_weights = np.array([0.10, 0.30, 0.20, 0.20, 0.20])  # example current weights summing to 1
+current_weights = np.array([0.00, 0.30, 0.10, 0.40, 0.20])  # example current weights summing to 1
 
 def portfolio_performance(weights):
     ret = np.dot(weights, mean_returns)
