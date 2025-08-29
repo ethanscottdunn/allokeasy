@@ -4,9 +4,11 @@ import pandas as pd
 from scipy.optimize import minimize
 from datetime import datetime, timedelta
 import random
+from csv_parser.vanguard import parse_cost_basis_vanguard_csv
 
 # --- Setup ---
-tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
+# tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
+tickers = ['VASGX', 'VEMAX', 'VFIAX', 'VSIAX', 'VGPMX', 'VSGAX', 'VTSAX']
 start_date = '2020-01-01'
 end_date = datetime.now().strftime('%Y-%m-%d')  # Use current date instead of 2025
 risk_free_rate = 0.02
@@ -38,14 +40,6 @@ def get_ltcg_tax_rate(income, filing_status='single'):
             return 0.15
         else:
             return 0.20
-
-# --- Current Portfolio with Lot Information ---
-class Lot:
-    def __init__(self, ticker, shares, cost_basis, purchase_date):
-        self.ticker = ticker
-        self.shares = shares
-        self.cost_basis = cost_basis  # per share
-        self.purchase_date = purchase_date
 
 # Simulate current holdings with lots (you can modify these based on your actual holdings)
 def create_sample_lots():
@@ -119,7 +113,8 @@ def calculate_lot_based_tax(lots, target_weights, current_prices, tax_rate):
     
     # Sort lots by purchase date (FIFO)
     for ticker in lots_by_ticker:
-        lots_by_ticker[ticker].sort(key=lambda x: x.purchase_date)
+        # MinTax sorting method
+        lots_by_ticker[ticker].sort(key=lambda x: x.cost_basis - x.shares*current_prices[ticker])
     
     total_tax = 0
     lots_to_sell = []
@@ -188,10 +183,11 @@ def neg_sharpe_with_lot_based_tax(weights):
     return -sharpe
 
 # --- Create sample lots and calculate current portfolio ---
-print("Creating sample portfolio lots...")
-lots = create_sample_lots()
-total_portfolio_value = sum(lot.shares * current_prices[lot.ticker] for lot in lots)
-current_weights = np.array([sum(lot.shares * current_prices[lot.ticker] for lot in lots if lot.ticker == ticker) / total_portfolio_value for ticker in tickers])
+print("Creating lots by tickers from CSV")
+# lots = create_sample_lots()
+lots_by_ticker = parse_cost_basis_vanguard_csv()
+total_portfolio_value = sum(sum(lot.quantity * current_prices[ticker] for lot in lots) for ticker, lots in lots_by_ticker.items())
+current_weights = np.array([sum(lot.quantity * current_prices[ticker] for lot in lots_by_ticker[ticker]) / total_portfolio_value for ticker in tickers])
 
 # Get user's LTCG tax rate
 ltcg_tax_rate = get_ltcg_tax_rate(user_income, user_filing_status)
