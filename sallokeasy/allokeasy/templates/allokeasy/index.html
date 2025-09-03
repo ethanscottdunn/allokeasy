@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portfolio UI</title>
+  <title>Allokeasy: Reallocation suggestions for your portfolio, including minimizing taxes accrued by rebalancing.</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -81,16 +81,49 @@
   <div class="container">
 
     <!-- 1. CSV Upload -->
-    <div class="card">
-      <h2>Upload CSV</h2>
+    <!-- <div class="card">
+      <h2>Upload Investment CSV</h2>
       <input type="file" id="csvFile" accept=".csv">
       <button id="csvSubmit">Submit CSV</button>
       <p id="csvStatus" style="margin-top:0.5rem;color:green;"></p>
+    </div> -->
+
+ <!-- 1. CSV Upload + User Info Section -->
+    <div class="card">
+      <h2>Upload CSV with Current Portfolio Allocation</h2>
+
+      <!-- CSV Upload -->
+      <h3>CSV Upload</h3>
+      <input type="file" id="csvFile" accept=".csv">
+      <button id="csvSubmit">Submit CSV</button> 
+      <p id="csvStatus" style="margin-top:0.5rem;color:green;"></p>
     </div>
+    <div class="card">
+      <h2> Portfolio Calculation Inputs </h2>
+      <!-- User Info Section -->
+      <h3>User Information</h3>
+      <div class="grid">
+        <div>
+          <label for="income">User income $:</label>
+          <input type="number" id="income" placeholder="Enter income">
+        </div>
+        <div>
+          <label for="filingStatus">User filing status:</label>
+          <select id="filingStatus">
+            <option value="">-- Select --</option>
+            <option value="single">Single</option>
+            <option value="married_joint">Married filing jointly</option>
+            <option value="married_separate">Married filing separately</option>
+          </select>
+        </div>
+      </div>
+      <!-- <button id="userSubmit">Calculate Optimal Portfolio (Re)Allocations </button>
+      <p id="userStatus" style="margin-top:0.5rem;color:green;"></p>-->
+    
 
     <!-- 2. Input Area -->
-    <div class="card">
-      <h2>Input Values</h2>
+    <!-- <div class="card"> -->
+      <h3>Input Values</h3>
       <div class="grid grid-2">
         <input type="text" placeholder="Input 1">
         <input type="text" placeholder="Input 2">
