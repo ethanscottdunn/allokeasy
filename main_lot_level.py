@@ -23,22 +23,17 @@ ltcg_second_breakpoint_tax_rate = 0.20
 income = 150000 
 filing_status = 'single'
 
-# --- Download price data ---
-print("Downloading market data...")
-try:
-    data = yf.download(tickers, start=start_date, end=end_date)['Close'].dropna()
-    returns = data.pct_change().dropna()
-    mean_returns = returns.mean() * 252
-    cov_matrix = returns.cov() * 252
-    current_prices = data.iloc[-1]
-    print("Data download successful!")
-except Exception as e:
-    print(f"Error downloading data: {e}")
-    print("Using fallback data...")
-    # Fallback data for testing
-    mean_returns = pd.Series([0.12, 0.15, 0.10, 0.08, 0.25], index=tickers)
-    cov_matrix = pd.DataFrame(np.eye(5) * 0.04, index=tickers, columns=tickers)
-    current_prices = pd.Series([180, 380, 140, 150, 200], index=tickers)
+def get_yfinance_data(tickers, start_date, end_date):
+    try:
+        data = yf.download(tickers, start=start_date, end=end_date)['Close'].dropna()
+        returns = data.pct_change().dropna()
+        mean_returns = returns.mean() * 252
+        cov_matrix = returns.cov() * 252
+        current_prices = data.iloc[-1]
+        return mean_returns, cov_matrix, current_prices
+    except Exception as e:
+        print(f"Error downloading data: {e}")
+        raise Exception('failed to download data, check internet connection')
 
 def get_ltcg_tax_by_breakpoints(realized_gains, income, ltcg_first_breakpoint, ltcg_second_breakpoint):
     ltcg_tax = 0
@@ -62,7 +57,7 @@ def get_ltcg_tax(realized_gains, income, filing_status):
     else:
         raise Error(f'{filing_status=} is not supported')
 
-def portfolio_performance(weights):
+def portfolio_performance(weights, mean_returns, cov_matrix):
     """Calculate portfolio return and volatility"""
     ret = np.dot(weights, mean_returns)
     std = np.sqrt(weights.T @ cov_matrix.values @ weights)
@@ -91,8 +86,8 @@ def calculate_lot_based_tax(lots_by_ticker, target_weights, current_prices, inco
             if quantity_to_sell <= 0:
                 lots_to_keep.append(lot)
             elif quantity_to_sell < lot.quantity:
-                lots_to_sell.append(Lot(quantity_to_sell, quantity_to_sell / (lot.quantity) * lot.cost_basis))
-                lots_to_keep.append(Lot(lot.quantity - quantity_to_sell, (lot.quantity - quantity_to_sell) / lot.quantity * lot.cost_basis))
+                lots_to_sell.append(Lot(quantity_to_sell, quantity_to_sell / (lot.quantity) * lot.cost_basis, lot.market_value))
+                lots_to_keep.append(Lot(lot.quantity - quantity_to_sell, (lot.quantity - quantity_to_sell) / lot.quantity * lot.cost_basis, lot.market_value))
                 realized_gains += quantity_to_sell * current_price - (quantity_to_sell / lot.quantity) * lot.cost_basis
             else:
                 lots_to_keep.append(lot)
@@ -105,135 +100,96 @@ def calculate_lot_based_tax(lots_by_ticker, target_weights, current_prices, inco
     total_tax = get_ltcg_tax(total_realized_gains, income, filing_status)
     return total_tax, lots_to_sell_by_ticker, lots_to_keep_by_ticker
 
-def neg_sharpe_without_cost(weights):
-    """Optimization function without tax consideration"""
-    ret, std = portfolio_performance(weights)
+# def neg_sharpe_without_cost(weights):
+#     """Optimization function without tax consideration"""
+#     ret, std = portfolio_performance(weights)
+#     sharpe = (ret - risk_free_rate) / std
+#     return -sharpe
+
+# def neg_sharpe_with_lot_based_tax(weights):
+#     """Optimization function with lot-based tax consideration"""
+#     ret, std = portfolio_performance(weights)
+#     tax_cost, _, _ = calculate_lot_based_tax(lots_by_ticker, weights, current_prices, income, filing_status)
+#     adjusted_ret = ret - (tax_cost / total_portfolio_value)
+#     sharpe = (adjusted_ret - risk_free_rate) / std
+#     return -sharpe
+
+def compare_contrast_portfolios(start_date, end_date, risk_free_rate, income, filing_status):
+    lots_by_ticker = parse_cost_basis_vanguard_csv()
+    tickers = sorted(lots_by_ticker)
+    mean_returns, cov_matrix, current_prices = get_yfinance_data(tickers, start_date, end_date)
+    return [
+        original_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, current_prices, risk_free_rate),
+        optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, current_prices, risk_free_rate, income, filing_status),
+        tax_optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, current_prices, risk_free_rate, income, filing_status)
+    ]
+
+def original_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, current_prices, risk_free_rate):
+    market_value_by_ticker = {ticker: sum(lot.quantity * current_prices[ticker] for lot in lots) for ticker, lots in lots_by_ticker.items()}
+    total_portfolio_value = sum(market_value for market_value in market_value_by_ticker.values())
+    current_weights = np.array([sum(lot.quantity * current_prices[ticker] for lot in lots_by_ticker[ticker]) / total_portfolio_value for ticker in tickers])
+
+    ret, std = portfolio_performance(current_weights, mean_returns, cov_matrix)
     sharpe = (ret - risk_free_rate) / std
-    return -sharpe
 
-def neg_sharpe_with_lot_based_tax(weights):
-    """Optimization function with lot-based tax consideration"""
-    ret, std = portfolio_performance(weights)
-    tax_cost, _, _ = calculate_lot_based_tax(lots_by_ticker, weights, current_prices, income, filing_status)
-    adjusted_ret = ret - (tax_cost / total_portfolio_value)
-    sharpe = (adjusted_ret - risk_free_rate) / std
-    return -sharpe
+    return {'ret': ret, 'std': std, 'sharpe': sharpe, 'taxes_paid': 0.0, 'portfolio': [(ticker, current_prices[ticker]) for ticker in tickers]}
 
-# --- Create sample lots and calculate current portfolio ---
-print("Creating lots by tickers from CSV")
-# lots = create_sample_lots()
-lots_by_ticker = parse_cost_basis_vanguard_csv()
-total_portfolio_value = sum(sum(lot.quantity * current_prices[ticker] for lot in lots) for ticker, lots in lots_by_ticker.items())
-current_weights = np.array([sum(lot.quantity * current_prices[ticker] for lot in lots_by_ticker[ticker]) / total_portfolio_value for ticker in tickers])
+def optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, current_prices, risk_free_rate, income, filing_status):
+    total_portfolio_value = sum(sum(lot.quantity * current_prices[ticker] for lot in lots) for ticker, lots in lots_by_ticker.items())
+    current_weights = np.array([sum(lot.quantity * current_prices[ticker] for lot in lots_by_ticker[ticker]) / total_portfolio_value for ticker in tickers])
 
-print(f"\n=== PORTFOLIO OPTIMIZATION WITH LOT-BASED TAX CALCULATIONS ===")
-print(f"User Income: ${income:,}")
-print(f"Filing Status: {filing_status}")
-print(f"Total Portfolio Value: ${total_portfolio_value:,.2f}")
+    constraints = {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}
+    bounds = tuple((0, 1) for _ in tickers)
 
-# --- Current Portfolio Analysis ---
-ret_current, std_current = portfolio_performance(current_weights)
-sharpe_current = (ret_current - risk_free_rate) / std_current
+    neg_sharpe_without_cost = lambda w: -((np.dot(w, mean_returns) - risk_free_rate) / np.sqrt(np.dot(w.T, np.dot(cov_matrix, w))))
 
-print(f"\n=== CURRENT PORTFOLIO ===")
-for i, ticker in enumerate(tickers):
-    ticker_value = sum(lot.quantity * current_prices[ticker] for lot in lots_by_ticker[ticker])
-    print(f"  {ticker}: {current_weights[i]:.2%} (${ticker_value:,.2f})")
-
-print(f"Expected Return: {ret_current:.2%}")
-print(f"Volatility: {std_current:.2%}")
-print(f"Sharpe Ratio: {sharpe_current:.4f}")
-
-# --- 1. Optimal Portfolio (No Tax Consideration) ---
-print(f"\n=== 1. OPTIMAL PORTFOLIO (NO TAX CONSIDERATION) ===")
-constraints = {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}
-bounds = tuple((0, 1) for _ in tickers)
-
-result_optimal = minimize(
-    neg_sharpe_without_cost,
-    current_weights,
-    method='SLSQP',
-    bounds=bounds,
-    constraints=constraints
-)
-
-if result_optimal.success:
-    weights_optimal = result_optimal.x
-    ret_optimal, std_optimal = portfolio_performance(weights_optimal)
-    sharpe_optimal = (ret_optimal - risk_free_rate) / std_optimal
-    
-    print("Optimal Weights:")
-    for ticker, w in zip(tickers, weights_optimal):
-        print(f"  {ticker}: {w:.2%}")
-    
-    print(f"Expected Return: {ret_optimal:.2%}")
-    print(f"Volatility: {std_optimal:.2%}")
-    print(f"Sharpe Ratio: {sharpe_optimal:.4f}")
-else:
-    print("Optimization failed.")
-
-# --- 2. Tax Calculation for Optimal Portfolio ---
-print(f"\n=== 2. TAX CALCULATION FOR OPTIMAL PORTFOLIO ===")
-if result_optimal.success:
-    tax_cost, lots_to_sell, lots_to_keep = calculate_lot_based_tax(lots_by_ticker, weights_optimal, current_prices, income, filing_status)
-    
-    print(f"Total Tax Cost: ${tax_cost:,.2f}")
-    print(f"Tax Cost as % of Portfolio: {tax_cost/total_portfolio_value:.2%}")
-    
-    print("\nLots to Sell (MinTax Method):")
-    for ticker in lots_to_sell:
-        for lot_sale in lots_to_sell[ticker]:
-            print(f"  {ticker}: {lot_sale.quantity:.0f} shares at ${lot_sale.cost_basis:.2f} cost basis")
-    
-# --- 3. Optimal Portfolio with Tax Consideration ---
-print(f"\n=== 3. OPTIMAL PORTFOLIO WITH TAX CONSIDERATION ===")
-result_tax_optimal = minimize(
-    neg_sharpe_with_lot_based_tax,
-    current_weights,
-    method='SLSQP',
-    bounds=bounds,
-    constraints=constraints
-)
-
-if result_tax_optimal.success:
-    weights_tax_optimal = result_tax_optimal.x
-    ret_tax_optimal, std_tax_optimal = portfolio_performance(weights_tax_optimal)
-    tax_cost_tax_optimal, lots_to_sell_tax_optimal, lots_to_keep_tax_optimal = calculate_lot_based_tax(
-        lots_by_ticker, weights_tax_optimal, current_prices, income, filing_status
+    result_optimal = minimize(
+        neg_sharpe_without_cost,
+        current_weights,
+        method='SLSQP',
+        bounds=bounds,
+        constraints=constraints
     )
-    adjusted_ret_tax_optimal = ret_tax_optimal - (tax_cost_tax_optimal / total_portfolio_value)
-    sharpe_tax_optimal = (adjusted_ret_tax_optimal - risk_free_rate) / std_tax_optimal
-    
-    print("Tax-Aware Optimal Weights:")
-    for ticker, w in zip(tickers, weights_tax_optimal):
-        print(f"  {ticker}: {w:.2%}")
-    
-    print(f"Expected Return (before tax): {ret_tax_optimal:.2%}")
-    print(f"Tax Cost: ${tax_cost_tax_optimal:,.2f} ({tax_cost_tax_optimal/total_portfolio_value:.2%})")
-    print(f"Adjusted Return (after tax): {adjusted_ret_tax_optimal:.2%}")
-    print(f"Volatility: {std_tax_optimal:.2%}")
-    print(f"Sharpe Ratio (after tax): {sharpe_tax_optimal:.4f}")
-    
-    print(f"\nTax-Aware Lots to Sell:")
-    for ticker in lots_to_sell_tax_optimal:
-        for lot_sale in lots_to_sell_tax_optimal[ticker]:
-            print(f"  {ticker}: {lot_sale.quantity:.2f} shares")
-    
-    print(f"\nTotal Tax Cost (Tax-Aware): ${tax_cost_tax_optimal:,.2f}")
-else:
-    print("Tax-aware optimization failed.")
 
-# --- Summary Comparison ---
-print(f"\n=== SUMMARY COMPARISON ===")
-print(f"{'Metric':<25} {'Current':<12} {'Optimal (No Tax)':<18} {'Optimal (Tax-Aware)':<20}")
-print("-" * 75)
-print(f"{'Expected Return':<25} {ret_current:<12.2%} {ret_optimal:<18.2%} {ret_tax_optimal:<20.2%}")
-print(f"{'Volatility':<25} {std_current:<12.2%} {std_optimal:<18.2%} {std_tax_optimal:<20.2%}")
-print(f"{'Sharpe Ratio':<25} {sharpe_current:<12.4f} {sharpe_optimal:<18.4f} {sharpe_tax_optimal:<20.4f}")
+    if result_optimal.success:
+        weights_optimal = result_optimal.x
+        ret_optimal, std_optimal = portfolio_performance(weights_optimal, mean_returns, cov_matrix)
+        tax_cost_optimal, _, _ = calculate_lot_based_tax(lots_by_ticker, weights_optimal, current_prices, income, filing_status)
+        sharpe_optimal = (ret_optimal - risk_free_rate) / std_optimal
+        return {'ret': ret_optimal, 'std': std_optimal, 'sharpe': sharpe_optimal, 'taxes_paid': tax_cost_optimal, 'portfolio': [(ticker, weights_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
+    else:
+        print("Optimization failed.")
 
-if result_optimal.success and result_tax_optimal.success:
-    print(f"{'Tax Cost':<25} {'N/A':<12} {tax_cost:<18,.0f} {tax_cost_tax_optimal:<20,.0f}")
-    print(f"{'Tax Cost %':<25} {'N/A':<12} {tax_cost/total_portfolio_value:<18.2%} {tax_cost_tax_optimal/total_portfolio_value:<20.2%}")
+def tax_optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, current_prices, risk_free_rate, income, filing_status):
+    total_portfolio_value = sum(sum(lot.quantity * current_prices[ticker] for lot in lots) for ticker, lots in lots_by_ticker.items())
+    current_weights = np.array([sum(lot.quantity * current_prices[ticker] for lot in lots_by_ticker[ticker]) / total_portfolio_value for ticker in tickers])
 
-print(f"\nNote: Tax calculations use MinTax method.")
-print(f"Modify income and filing_status variables to match your tax situation.")
+    constraints = {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}
+    bounds = tuple((0, 1) for _ in tickers)
+
+    neg_sharpe_with_lot_based_tax = lambda w: -(((np.dot(w, mean_returns) - (calculate_lot_based_tax(lots_by_ticker, w, current_prices, income, filing_status)[0] / total_portfolio_value) - risk_free_rate)
+    / np.sqrt(np.dot(w.T, np.dot(cov_matrix, w)))))
+
+    result_tax_optimal = minimize(
+        neg_sharpe_with_lot_based_tax,
+        current_weights,
+        method='SLSQP',
+        bounds=bounds,
+        constraints=constraints
+    )
+
+    if result_tax_optimal.success:
+        weights_tax_optimal = result_tax_optimal.x
+        ret_tax_optimal, std_tax_optimal = portfolio_performance(weights_tax_optimal, mean_returns, cov_matrix)
+        tax_cost_tax_optimal, lots_to_sell_tax_optimal, lots_to_keep_tax_optimal = calculate_lot_based_tax(
+            lots_by_ticker, weights_tax_optimal, current_prices, income, filing_status
+        )
+        adjusted_ret_tax_optimal = ret_tax_optimal - (tax_cost_tax_optimal / total_portfolio_value)
+        sharpe_tax_optimal = (adjusted_ret_tax_optimal - risk_free_rate) / std_tax_optimal
+        return {'ret': adjusted_ret_tax_optimal, 'std': std_tax_optimal, 'sharpe': sharpe_tax_optimal, 'taxes_paid': tax_cost_tax_optimal, 'portfolio': [(ticker, weights_tax_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
+    else:
+        print("Tax-aware optimization failed.")
+
+if __name__ == "__main__":
+    compare_contrast_portfolios('2020-01-01', '2025-01-01', 0.02, 150000, 'single')
+
