@@ -13,7 +13,7 @@ class Lot:
     def __repr__(self):
     	return f'{self.quantity=}, {self.cost_basis=}'
 
-def parse_cost_basis_vanguard_csv(csv_file_path):
+def parse_cost_basis_vanguard_csv(csv_file_path=csv_file_path):
 
 	lots_by_ticker: Dict[str, list[Lot]] = {}
 
