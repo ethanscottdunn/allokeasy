@@ -111,9 +111,8 @@
       </div>
     </div>
     
-    <div class="card">
+    <!-- <div class="card">
       <h2> Portfolio Calculation Inputs </h2>
-      <!-- User Info Section -->
       <h3>User Information</h3>
       <div class="grid">
         <div>
@@ -129,13 +128,54 @@
             <option value="married_separate">Married filing separately</option>
           </select>
         </div>
+        <div>
+          <label for="risk_free_rate">Risk free rate:</label>
+          <input type="number" id="risk_free_rate" value="4">%          
+        </div>
       </div>
+    </div> -->
       <!-- <button id="userSubmit">Calculate Optimal Portfolio (Re)Allocations </button>
       <p id="userStatus" style="margin-top:0.5rem;color:green;"></p>-->
     
+    <div class="card">
+      <h2> Portfolio Calculation Inputs </h2>
+    <form method="POST" enctype="multipart/form-data" action="{% url 'produce_optimized_portfolio' %}">
+    {% csrf_token %}
+
+      <!-- CSV Upload -->
+      <label for="csv_file">Upload CSV:</label>
+      <input type="file" name="csv_file" id="csv_file" accept=".csv" required><br><br>
+
+      <!-- Income -->
+      <label for="income">Income:</label>
+      <input type="number" step="any" name="income" id="income" required><br><br>
+
+      <!-- Risk free rate -->
+      <label for="risk_free_rate">Risk free rate:</label>
+      <input type="number" step="any" name="risk_free_rate" id="risk_free_rate" value=4 required>%<br><br>
+
+      <!-- Start Date -->
+      <label for="start_date">Start Date:</label>
+      <input type="date" name="start_date" id="start_date" value="2020-01-01" required><br><br>
+
+      <!-- End Date -->
+      <label for="end_date">End Date:</label>
+      <input type="date" name="end_date" id="end_date" required><br><br>
+
+      <!-- Dropdown -->
+      <label for="filing_status">Filing Status:</label>
+      <select name="filing_status" id="filing_status" required>
+        <option value="single">Single</option>
+        <option value="married_filing_separately">Married Filing Separately</option>
+        <option value="married_filing_jointly">Married Filing Jointly</option>
+      </select><br><br>
+
+      <button type="submit">Submit</button>
+      </form>
+    </div>
 
     <!-- 2. Input Area -->
-    <!-- <div class="card"> -->
+    <div class="card">
       <h3>Input Values</h3>
       <div class="grid grid-2">
         <input type="text" placeholder="Input 1">
@@ -169,6 +209,16 @@
   </div>
 
   <script>
+
+    // Date for the default End Date
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+    const day = String(today.getDate()).padStart(2, '0');
+
+    const formattedDate = `${year}-${month}-${day}`;
+    document.getElementById('end_date').value = formattedDate;
+
     // Handle CSV upload
     const csvSubmit = document.getElementById("csvSubmit");
     const csvFileInput = document.getElementById("csvFile");
