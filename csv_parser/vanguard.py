@@ -47,4 +47,4 @@ def parse_cost_basis_vanguard_csv_by_ticker(csv_file_path):
 
 	lots_by_ticker = parse_cost_basis_vanguard_csv(csv_file_path)
 
-	return {'ticker': ticker, 'quantity': (sum(lot.quantity for lot in lots)), 'market_value': (sum(lot.market_value for lot in lots)) for ticker, lots in lots_by_ticker.items()}
+	return [{'ticker': ticker, 'quantity': (sum(lot.quantity for lot in lots)), 'market_value': (sum(lot.market_value for lot in lots))} for ticker, lots in lots_by_ticker.items()]
