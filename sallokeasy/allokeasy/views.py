@@ -26,18 +26,21 @@ def upload_csv(request):
         io_string = io.StringIO(decoded_file)
         #reader = csv.DictReader(io_string)
 
-        alloc_dict = parse_cost_basis_vanguard_csv_by_ticker(io_string)
+        #alloc_dict = parse_cost_basis_vanguard_csv_by_ticker(io_string)
+        alloc_dict_list = parse_cost_basis_vanguard_csv_by_ticker(io_string)
+        # ticker, quantity, market_value
 
-        allocations = []
-        for k, v in alloc_dict.items():
-            # Expect columns: ticker, value
-            allocations.append({
-                "ticker": k,
-                "value": v
-            })
-        print(allocations)
-        print((type(allocations)))
+        #allocations = []
+        #for k, v in alloc_dict.items():
+        #    # Expect columns: ticker, value
+        #    allocations.append({
+        #        "ticker": k,
+        #        "value": f"{v:.2f}"
+        #    })
+        #print(allocations)
+        #print((type(allocations)))
 
-        return JsonResponse({"allocations": allocations})
+        #return JsonResponse({"allocations": allocations})
+        return JsonResponse({"allocations": alloc_dict_list})
 
     return JsonResponse({"error": "No file uploaded"}, status=400)
