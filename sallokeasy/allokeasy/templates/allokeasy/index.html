@@ -98,6 +98,19 @@
       <button id="csvSubmit">Submit CSV</button> 
       <p id="csvStatus" style="margin-top:0.5rem;color:green;"></p>
     </div>
+
+    <!-- 3. Allocations Table -->
+    <div class="card">
+      <h2>Current Allocations</h2>
+      <div class="grid grid-2">
+        <div><strong>Name</strong></div>
+        <div><strong>Percentage</strong></div>
+        <div>Name</div><div>Percentage</div>
+        <div>Name</div><div>Percentage</div>
+        <div>Name</div><div>Percentage</div>
+      </div>
+    </div>
+    
     <div class="card">
       <h2> Portfolio Calculation Inputs </h2>
       <!-- User Info Section -->
@@ -135,17 +148,7 @@
       <button id="submitBtn">Submit</button>
     </div>
 
-    <!-- 3. Allocations Table -->
-    <div class="card">
-      <h2>Allocations</h2>
-      <div class="grid grid-2">
-        <div><strong>Name</strong></div>
-        <div><strong>Percentage</strong></div>
-        <div>Name</div><div>Percentage</div>
-        <div>Name</div><div>Percentage</div>
-        <div>Name</div><div>Percentage</div>
-      </div>
-    </div>
+
 
     <!-- 4. Results (hidden initially) -->
     <div id="results" class="card" style="display:none;">
@@ -196,10 +199,10 @@
           console.log("Parsed allocations:", data.allocations);
 
           // Example: replace allocations table dynamically
-          const allocDiv = document.querySelector(".card:nth-of-type(3) .grid");
-          allocDiv.innerHTML = "<div><strong>Name</strong></div><div><strong>Percentage</strong></div>";
+          const allocDiv = document.querySelector(".card:nth-of-type(2) .grid");
+          allocDiv.innerHTML = "<div><strong>Name</strong></div><div><strong>Value</strong></div>";
           data.allocations.forEach(row => {
-              allocDiv.innerHTML += `<div>${row.name}</div><div>${row.percentage}</div>`;
+              allocDiv.innerHTML += `<div>${row.ticker}</div><div>${row.value}</div>`;
           });
         } else {
           csvStatus.textContent = "Error uploading CSV.";
