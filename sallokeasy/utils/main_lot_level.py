@@ -115,8 +115,8 @@ def calculate_lot_based_tax(lots_by_ticker, target_weights, current_prices, inco
 #     sharpe = (adjusted_ret - risk_free_rate) / std
 #     return -sharpe
 
-def compare_contrast_portfolios(csv_file, start_date, end_date, risk_free_rate, income, filing_status):
-    lots_by_ticker = parse_cost_basis_vanguard_csv(csv_file)
+def compare_contrast_portfolios(csv_file_path, start_date, end_date, risk_free_rate, income, filing_status):
+    lots_by_ticker = parse_cost_basis_vanguard_csv(csv_file_path)
     tickers = sorted(lots_by_ticker)
     mean_returns, cov_matrix, current_prices = get_yfinance_data(tickers, start_date, end_date)
     return [
@@ -133,7 +133,8 @@ def original_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, curren
     ret, std = portfolio_performance(current_weights, mean_returns, cov_matrix)
     sharpe = (ret - risk_free_rate) / std
 
-    return {'ret': ret, 'std': std, 'sharpe': sharpe, 'taxes_paid': 0.0, 'portfolio': [(ticker, current_prices[ticker]) for ticker in tickers]}
+    print({'ret': ret, 'std': std, 'sharpe': sharpe, 'taxes_paid': 0.0, 'portfolio': [(ticker, current_weights[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]})
+    return {'ret': ret, 'std': std, 'sharpe': sharpe, 'taxes_paid': 0.0, 'portfolio': [(ticker, current_weights[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
 
 def optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, current_prices, risk_free_rate, income, filing_status):
     total_portfolio_value = sum(sum(lot.quantity * current_prices[ticker] for lot in lots) for ticker, lots in lots_by_ticker.items())
@@ -157,6 +158,7 @@ def optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, curre
         ret_optimal, std_optimal = portfolio_performance(weights_optimal, mean_returns, cov_matrix)
         tax_cost_optimal, _, _ = calculate_lot_based_tax(lots_by_ticker, weights_optimal, current_prices, income, filing_status)
         sharpe_optimal = (ret_optimal - risk_free_rate) / std_optimal
+        print({'ret': ret_optimal, 'std': std_optimal, 'sharpe': sharpe_optimal, 'taxes_paid': tax_cost_optimal, 'portfolio': [(ticker, weights_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]})
         return {'ret': ret_optimal, 'std': std_optimal, 'sharpe': sharpe_optimal, 'taxes_paid': tax_cost_optimal, 'portfolio': [(ticker, weights_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
     else:
         print("Optimization failed.")
@@ -187,6 +189,7 @@ def tax_optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, c
         )
         adjusted_ret_tax_optimal = ret_tax_optimal - (tax_cost_tax_optimal / total_portfolio_value)
         sharpe_tax_optimal = (adjusted_ret_tax_optimal - risk_free_rate) / std_tax_optimal
+        print({'ret': adjusted_ret_tax_optimal, 'std': std_tax_optimal, 'sharpe': sharpe_tax_optimal, 'taxes_paid': tax_cost_tax_optimal, 'portfolio': [(ticker, weights_tax_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]})
         return {'ret': adjusted_ret_tax_optimal, 'std': std_tax_optimal, 'sharpe': sharpe_tax_optimal, 'taxes_paid': tax_cost_tax_optimal, 'portfolio': [(ticker, weights_tax_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
     else:
         print("Tax-aware optimization failed.")
