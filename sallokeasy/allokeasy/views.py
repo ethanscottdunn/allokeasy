@@ -16,6 +16,7 @@ def index(request):
     #return HttpResponse("Hello, world. You're at the allokeasy index.")
     return render(request,"allokeasy/index.html")
 
+# upload_csv is not currently running -- all functionality is in produce_optmized_portfolio
 @csrf_exempt
 def upload_csv(request):
     if request.method == "POST" and request.FILES.get("file"):

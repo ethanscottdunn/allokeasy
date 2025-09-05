@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Allokeasy: Reallocation suggestions for your portfolio, including minimizing taxes accrued by rebalancing.</title>
+  <title>Allokeasy</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -120,28 +120,20 @@
 <body>
   <div class="container">
 
-    <!-- 1. CSV Upload -->
-    <!-- <div class="card">
-      <h2>Upload Investment CSV</h2>
-      <input type="file" id="csvFile" accept=".csv">
-      <button id="csvSubmit">Submit CSV</button>
-      <p id="csvStatus" style="margin-top:0.5rem;color:green;"></p>
-    </div> -->
-
  <!-- 1. CSV Upload + User Info Section -->
     <div class="card">
-      <h2>Upload CSV with Current Portfolio Allocation</h2>
-
+      <h2>Allokeasy</h2>
+      <p>Reallocation suggestions for your portfolio, including minimizing taxes accrued by rebalancing.</p>
       <!-- CSV Upload -->
-      <h3>CSV Upload</h3>
+      <!-- <h3>CSV Upload</h3>
       <input type="file" id="csvFile" accept=".csv">
       <button id="csvSubmit">Submit CSV</button> 
-      <p id="csvStatus" style="margin-top:0.5rem;color:green;"></p>
+      <p id="csvStatus" style="margin-top:0.5rem;color:green;"></p> -->
     </div>
 
 
     <!-- 3. Allocations Table -->
-    <div class="card">
+    <!-- <div class="card">
       <h2>Current Allocations</h2>
       <div class="grid grid-2">
         <div><strong>Name</strong></div>
@@ -149,7 +141,7 @@
         <div><strong>Market Value</strong></div>
         <div>Name</div><div>Quantity</div><div>Market Value</div>
       </div>
-    </div>
+    </div> -->
     
     <div class="card">
       <h2> Portfolio Calculation Inputs </h2>
@@ -272,50 +264,50 @@ document.getElementById("portfolioForm").addEventListener("submit", async functi
     }
 });
     
-    // Handle CSV upload
-    const csvSubmit = document.getElementById("csvSubmit");
-    const csvFileInput = document.getElementById("csvFile");
-    const csvStatus = document.getElementById("csvStatus");
+    // Handle CSV upload -> commenting out for now because just doing the form
+    // const csvSubmit = document.getElementById("csvSubmit");
+    // const csvFileInput = document.getElementById("csvFile");
+    // const csvStatus = document.getElementById("csvStatus");
 
-    csvSubmit.addEventListener("click", async () => {
-      const file = csvFileInput.files[0];
-      if (!file) {
-        alert("Please choose a CSV file first.");
-        return;
-      }
+    // csvSubmit.addEventListener("click", async () => {
+    //   const file = csvFileInput.files[0];
+    //   if (!file) {
+    //     alert("Please choose a CSV file first.");
+    //     return;
+    //   }
 
-      const formData = new FormData();
-      formData.append("file", file);
+    //   const formData = new FormData();
+    //   formData.append("file", file);
 
-      try {
-        const response = await fetch("upload-csv/", {
-          method: "POST",
-          body: formData
-        });
+    //   try {
+    //     const response = await fetch("upload-csv/", {
+    //       method: "POST",
+    //       body: formData
+    //     });
 
-        if (response.ok) {
-          const data = await response.json();
-          csvStatus.textContent = "CSV uploaded successfully!";
-          csvStatus.style.color = "green";
+    //     if (response.ok) {
+    //       const data = await response.json();
+    //       csvStatus.textContent = "CSV uploaded successfully!";
+    //       csvStatus.style.color = "green";
 
-          // Display returned allocations in console (or inject into DOM)
-          console.log("Parsed allocations:", data.allocations);
+    //       // Display returned allocations in console (or inject into DOM)
+    //       console.log("Parsed allocations:", data.allocations);
 
-          // Example: replace allocations table dynamically
-          const allocDiv = document.querySelector(".card:nth-of-type(2) .grid");
-          allocDiv.innerHTML = "<div><strong>Name</strong></div><div><strong>Quantity</strong></div><div><strong>Market Value</strong></div>";
-          data.allocations.forEach(row => {
-              allocDiv.innerHTML += `<div>${row.ticker}</div><div>${row.quantity}</div><div>${row.market_value}</div>`;
-          });
-        } else {
-          csvStatus.textContent = "Error uploading CSV.";
-          csvStatus.style.color = "red";
-        }
-      } catch (err) {
-        csvStatus.textContent = "Network error.";
-        csvStatus.style.color = "red";
-      }
-    });
+    //       // Example: replace allocations table dynamically
+    //       const allocDiv = document.querySelector(".card:nth-of-type(2) .grid");
+    //       allocDiv.innerHTML = "<div><strong>Name</strong></div><div><strong>Quantity</strong></div><div><strong>Market Value</strong></div>";
+    //       data.allocations.forEach(row => {
+    //           allocDiv.innerHTML += `<div>${row.ticker}</div><div>${row.quantity}</div><div>${row.market_value}</div>`;
+    //       });
+    //     } else {
+    //       csvStatus.textContent = "Error uploading CSV.";
+    //       csvStatus.style.color = "red";
+    //     }
+    //   } catch (err) {
+    //     csvStatus.textContent = "Network error.";
+    //     csvStatus.style.color = "red";
+    //   }
+    // });
 
 
   </script>
