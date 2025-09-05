@@ -75,6 +75,46 @@
       background: white;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
     }
+
+    .stats p {
+      margin: 4px 0;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+
+    table th, table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    table th {
+      background: #f3f4f6;
+      text-align: left;
+    }    
+
+    #resultsContainer {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+    align-items: stretch; /* makes cards equal height */
+    }
+
+    @media (min-width: 768px) {
+      #resultsContainer {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    #resultsContainer .card {
+      display: flex;
+      flex-direction: column;
+    }
   </style>
 </head>
 <body>
@@ -98,6 +138,7 @@
       <button id="csvSubmit">Submit CSV</button> 
       <p id="csvStatus" style="margin-top:0.5rem;color:green;"></p>
     </div>
+
 
     <!-- 3. Allocations Table -->
     <div class="card">
@@ -138,74 +179,43 @@
     
     <div class="card">
       <h2> Portfolio Calculation Inputs </h2>
-    <form method="POST" enctype="multipart/form-data" action="{% url 'produce_optimized_portfolio' %}">
+   <form id="portfolioForm" method="POST" enctype="multipart/form-data" action="{% url 'produce_optimized_portfolio' %}">
     {% csrf_token %}
 
-      <!-- CSV Upload -->
-      <label for="csv_file">Upload CSV:</label>
-      <input type="file" name="csv_file" id="csv_file" accept=".csv" required><br><br>
+    <!-- CSV Upload -->
+    <label for="csv_file">Upload CSV:</label>
+    <input type="file" name="csv_file" id="csv_file" accept=".csv" required><br><br>
 
-      <!-- Income -->
-      <label for="income">Income:</label>
-      <input type="number" step="any" name="income" id="income" required><br><br>
+    <!-- Income -->
+    <label for="income">Income:</label>
+    <input type="number" step="any" name="income" id="income" required><br><br>
 
-      <!-- Risk free rate -->
-      <label for="risk_free_rate">Risk free rate:</label>
-      <input type="number" step="any" name="risk_free_rate" id="risk_free_rate" value=4 required>%<br><br>
+    <!-- Risk free rate -->
+    <label for="risk_free_rate">Risk free rate:</label>
+    <input type="number" step="any" name="risk_free_rate" id="risk_free_rate" value="4" required>%<br><br>
 
-      <!-- Start Date -->
-      <label for="start_date">Start Date:</label>
-      <input type="date" name="start_date" id="start_date" value="2020-01-01" required><br><br>
+    <!-- Start Date -->
+    <label for="start_date">Start Date:</label>
+    <input type="date" name="start_date" id="start_date" value="2020-01-01" required><br><br>
 
-      <!-- End Date -->
-      <label for="end_date">End Date:</label>
-      <input type="date" name="end_date" id="end_date" required><br><br>
+    <!-- End Date -->
+    <label for="end_date">End Date:</label>
+    <input type="date" name="end_date" id="end_date" required><br><br>
 
-      <!-- Dropdown -->
-      <label for="filing_status">Filing Status:</label>
-      <select name="filing_status" id="filing_status" required>
+    <!-- Dropdown -->
+    <label for="filing_status">Filing Status:</label>
+    <select name="filing_status" id="filing_status" required>
         <option value="single">Single</option>
         <option value="married_filing_separately">Married Filing Separately</option>
         <option value="married_filing_jointly">Married Filing Jointly</option>
-      </select><br><br>
+    </select><br><br>
 
-      <button type="submit">Submit</button>
-      </form>
+    <button type="submit" id="portfolioSubmit">Submit</button>
+</form>
     </div>
 
-    <!-- 2. Input Area -->
-    <div class="card">
-      <h3>Input Values</h3>
-      <div class="grid grid-2">
-        <input type="text" placeholder="Input 1">
-        <input type="text" placeholder="Input 2">
-        <input type="text" placeholder="Input 3">
-        <input type="text" placeholder="Input 4">
-        <input type="text" placeholder="Input 5">
-        <input type="text" placeholder="Input 6">
-      </div>
-      <button id="submitBtn">Submit</button>
-    </div>
+  <div id="resultsContainer" class="container"></div>
 
-
-
-    <!-- 4. Results (hidden initially) -->
-    <div id="results" class="card" style="display:none;">
-      <h2>Results</h2>
-      <ul>
-        <li>Expected returns</li>
-        <li>Expected volatility</li>
-        <li>Sharpe ratio</li>
-      </ul>
-    </div>
-
-    <!-- 5. Boxes (hidden initially) -->
-    <div id="boxes" class="boxes" style="display:none;">
-      <div class="box"><h3>No changes</h3></div>
-      <div class="box"><h3>Tax optimized changes</h3></div>
-      <div class="box"><h3>Starting from scratch allocation</h3></div>
-    </div>
-  </div>
 
   <script>
 
@@ -218,6 +228,64 @@
     const formattedDate = `${year}-${month}-${day}`;
     document.getElementById('end_date').value = formattedDate;
 
+ // Handle Portfolio Submit 
+function createCard(title, obj) {
+  const card = document.createElement("div");
+  card.className = "card";
+
+  card.innerHTML = `
+    <h2>${title}</h2>
+    <div class="stats">
+      <p><strong>Return:</strong> ${(obj.ret * 100).toFixed(2)}%</p>
+      <p><strong>Std Dev:</strong> ${(obj.std * 100).toFixed(2)}%</p>
+      <p><strong>Sharpe:</strong> ${obj.sharpe.toFixed(2)}</p>
+      <p><strong>Taxes Paid:</strong> $${obj.taxes_paid.toLocaleString()}</p>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Ticker</th><th>Allocation</th></tr>
+      </thead>
+      <tbody>
+        ${obj.portfolio.map(([ticker, value]) => `
+          <tr>
+            <td>${ticker}</td>
+            <td style="text-align:right">${value.toFixed(2)}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+  return card;
+}
+
+document.getElementById("portfolioForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const formData = new FormData(form);
+
+    const response = await fetch(form.action, {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value
+        }
+    });
+
+    if (response.ok) {
+        const data = await response.json();
+
+        const container = document.getElementById("resultsContainer");
+        container.innerHTML = ""; // clear old results
+
+        container.appendChild(createCard("Original", data.original));
+        container.appendChild(createCard("Optimized", data.optimized));
+        container.appendChild(createCard("Tax Optimized", data.tax_optimized));
+    } else {
+        document.getElementById("resultsContainer").innerHTML = "<p style='color:red'>Error submitting form.</p>";
+    }
+});
+    
     // Handle CSV upload
     const csvSubmit = document.getElementById("csvSubmit");
     const csvFileInput = document.getElementById("csvFile");
@@ -263,15 +331,7 @@
       }
     });
 
-    // Handle Input Submit
-    const submitBtn = document.getElementById("submitBtn");
-    const results = document.getElementById("results");
-    const boxes = document.getElementById("boxes");
 
-    submitBtn.addEventListener("click", () => {
-      results.style.display = "block";
-      boxes.style.display = "grid";
-    });
   </script>
 </body>
 </html>

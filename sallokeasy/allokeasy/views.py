@@ -87,14 +87,17 @@ def produce_optimized_portfolio(request):
         print("end_date: %s" % end_date)
 
         # io_string is csv_file -- not sure if this will fail
-        stuff = compare_contrast_portfolios(io_string, 
+        original, optimized, tax_optimized = compare_contrast_portfolios(io_string, 
                                             start_date, 
                                             end_date, 
                                             risk_free_rate, 
                                             income, 
                                             filing_status)
-        print(stuff)
-        return JsonResponse({"error": "information received"}, status=400)
+
+        #ret, std, sharpe, taxes_paid, portfolio
+        #{'ret': adjusted_ret_tax_optimal, 'std': std_tax_optimal, 'sharpe': sharpe_tax_optimal, 'taxes_paid': tax_cost_tax_optimal, 'portfolio': [(ticker, weights_tax_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}                                    
+        #print(stuff)
+        return JsonResponse({"original": original, "optimized": optimized, "tax_optimized": tax_optimized})
     #if request.method == "POST" and request.FILES.get("file"):
         #return JsonResponse({"allocations": alloc_dict_list})
     return JsonResponse({"error": "information not received"}, status=400)
