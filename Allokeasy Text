@@ -8,8 +8,17 @@ I know. Nor should you. Taxes cause a real drag on your portfolio, and you shoul
 
 Not really. But this website makes it trivial. Here's how it works:
 
-1) Upload your portfolio holdings (Vanguard)
+1) Upload your portfolio holdings (Vanguard for now)
+	a) Go to vanguard.com and export your brokerage account holdings
 2) Fill in your income, filing status, and risk free rate of return
 	a) Income is required to calculate your marginal tax rate
 	b) Filing Status is required to calculate your marginal tax rate
-	c) Risk Free Rate is required to optimize your portfolio
+	c) Risk Free Rate is required to calculate the Sharpe ratio and affects the optimization
+3) Interpret the results!
+	a) Original is your current portfolio's performance metrics of return, standard deviation, and Sharpe ratio
+	b) Optimized is the portfolio you should have if you didn't have to pay taxes ()
+	c) Tax Optimized is the portfolio you should have, accounting for the impact of the taxes you would need to pay
+
+
+
+* past performance is not indicative of future results

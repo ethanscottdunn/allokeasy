@@ -156,6 +156,7 @@ def optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, curre
         weights_optimal = result_optimal.x
         ret_optimal, std_optimal = portfolio_performance(weights_optimal, mean_returns, cov_matrix)
         tax_cost_optimal, _, _ = calculate_lot_based_tax(lots_by_ticker, weights_optimal, current_prices, income, filing_status)
+        ret_optimal = ret_optimal - tax_cost_optimal / total_portfolio_value # adjusting returns for the taxes you do have to pay
         sharpe_optimal = (ret_optimal - risk_free_rate) / std_optimal
         print({'ret': ret_optimal, 'std': std_optimal, 'sharpe': sharpe_optimal, 'taxes_paid': tax_cost_optimal, 'portfolio': [(ticker, weights_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]})
         return {'ret': ret_optimal, 'std': std_optimal, 'sharpe': sharpe_optimal, 'taxes_paid': tax_cost_optimal, 'portfolio': [(ticker, weights_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
