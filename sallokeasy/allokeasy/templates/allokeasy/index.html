@@ -151,32 +151,6 @@
       </div>
     </div>
     
-    <!-- <div class="card">
-      <h2> Portfolio Calculation Inputs </h2>
-      <h3>User Information</h3>
-      <div class="grid">
-        <div>
-          <label for="income">User income $:</label>
-          <input type="number" id="income" placeholder="Enter income">
-        </div>
-        <div>
-          <label for="filingStatus">User filing status:</label>
-          <select id="filingStatus">
-            <option value="">-- Select --</option>
-            <option value="single">Single</option>
-            <option value="married_joint">Married filing jointly</option>
-            <option value="married_separate">Married filing separately</option>
-          </select>
-        </div>
-        <div>
-          <label for="risk_free_rate">Risk free rate:</label>
-          <input type="number" id="risk_free_rate" value="4">%          
-        </div>
-      </div>
-    </div> -->
-      <!-- <button id="userSubmit">Calculate Optimal Portfolio (Re)Allocations </button>
-      <p id="userStatus" style="margin-top:0.5rem;color:green;"></p>-->
-    
     <div class="card">
       <h2> Portfolio Calculation Inputs </h2>
    <form id="portfolioForm" method="POST" enctype="multipart/form-data" action="{% url 'produce_optimized_portfolio' %}">
@@ -229,6 +203,18 @@
     document.getElementById('end_date').value = formattedDate;
 
  // Handle Portfolio Submit 
+function formatValue(val, isPercent = false) {
+  if (typeof val === "number") {
+    return isPercent ? (val * 100).toFixed(2) + "%" : val.toFixed(2);
+  } else if (typeof val === "object" && val !== null) {
+    // dictionary with pre_tax and post_tax
+    const pre = isPercent ? (val.pre_tax * 100).toFixed(2) + "%" : val.pre_tax.toFixed(2);
+    const post = isPercent ? (val.post_tax * 100).toFixed(2) + "%" : val.post_tax.toFixed(2);
+    return `Pre-tax: ${pre}<br>Post-tax: ${post}`;
+  }
+  return "N/A";
+}
+
 function createCard(title, obj) {
   const card = document.createElement("div");
   card.className = "card";
@@ -236,9 +222,9 @@ function createCard(title, obj) {
   card.innerHTML = `
     <h2>${title}</h2>
     <div class="stats">
-      <p><strong>Return:</strong> ${(obj.ret * 100).toFixed(2)}%</p>
-      <p><strong>Std Dev:</strong> ${(obj.std * 100).toFixed(2)}%</p>
-      <p><strong>Sharpe:</strong> ${obj.sharpe.toFixed(2)}</p>
+      <p><strong>Return:</strong> ${formatValue(obj.ret, true)}</p>
+      <p><strong>Std Dev:</strong> ${formatValue(obj.std, true)}</p>
+      <p><strong>Sharpe:</strong> ${formatValue(obj.sharpe, false)}</p>
       <p><strong>Taxes Paid:</strong> $${obj.taxes_paid.toLocaleString()}</p>
     </div>
     <table>
