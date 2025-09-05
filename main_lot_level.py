@@ -114,8 +114,8 @@ def calculate_lot_based_tax(lots_by_ticker, target_weights, current_prices, inco
 #     sharpe = (adjusted_ret - risk_free_rate) / std
 #     return -sharpe
 
-def compare_contrast_portfolios(start_date, end_date, risk_free_rate, income, filing_status):
-    lots_by_ticker = parse_cost_basis_vanguard_csv()
+def compare_contrast_portfolios(csv_file_path, start_date, end_date, risk_free_rate, income, filing_status):
+    lots_by_ticker = parse_cost_basis_vanguard_csv(csv_file_path)
     tickers = sorted(lots_by_ticker)
     mean_returns, cov_matrix, current_prices = get_yfinance_data(tickers, start_date, end_date)
     return [
