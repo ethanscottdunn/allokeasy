@@ -132,8 +132,8 @@ def original_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, curren
     ret, std = portfolio_performance(current_weights, mean_returns, cov_matrix)
     sharpe = (ret - risk_free_rate) / std
 
-    print({'ret': ret, 'std': std, 'sharpe': sharpe, 'taxes_paid': 0.0, 'portfolio': [(ticker, current_weights[i] * current_prices[ticker]) for i, ticker in enumerate(tickers)]})
-    return {'ret': ret, 'std': std, 'sharpe': sharpe, 'taxes_paid': 0.0, 'portfolio': [(ticker, current_weights[i] * current_prices[ticker]) for i, ticker in enumerate(tickers)]}
+    print({'ret': ret, 'std': std, 'sharpe': sharpe, 'taxes_paid': 0.0, 'portfolio': [(ticker, current_weights[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]})
+    return {'ret': ret, 'std': std, 'sharpe': sharpe, 'taxes_paid': 0.0, 'portfolio': [(ticker, current_weights[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
 
 def optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, current_prices, risk_free_rate, income, filing_status):
     total_portfolio_value = sum(sum(lot.quantity * current_prices[ticker] for lot in lots) for ticker, lots in lots_by_ticker.items())
