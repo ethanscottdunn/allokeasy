@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Allokeasy</title>
+  <link rel="icon" type="image/x-icon" href="allokeasy_favicon.ico">
+  <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+<div class="container">
+<div class="card">
+	<h1>Allokeasy</h1>
+	<p>Optimize your portfolio allocation with tax considerations.</p>
+</div>
+  <div id="loading" style="display:none;">
+    <p>Processing, please wait... <span class="spinner"></span></p>
+  </div>
+<div class="card">
+  <h2>Portfolio optimization calculation inputs</h2>
+  <form id="uploadForm">
+    <label>Portfolio export (.csv file like "cost_basis_vanguard.csv"): <input type="file" name="csvfile" required></label><br><br>
+    <label>Annual Income (for determining tax bracket for realized gains): <input type="number" step="any" name="income" required></label><br><br>
+    <label>Tax Filing Status:
+      <select name="status" required>
+        <option value="single">Single</option>
+        <option value="married_joint">Married Filing Jointly</option>
+        <option value="married_separate">Married Filing Separately</option>
+      </select>
+    </label><br><br>
+    <label>Risk Free Rate (currently 4%): <input type="number" step="any" name="risk_free_rate" value=".04" required></label><br><br>
+    <p>Calculate based on this historical period (default: past 5 years)</p>
+    <label>Start Date: <input type="date" name="start_date" id="start_date" required></label><br><br>
+    <label>End Date: <input type="date" name="end_date" id="end_date" required></label><br><br>
+    <button type="submit">Submit</button>
+  </form>
+</div>
+<div class="card" id="resultsContainer">
+  <div class="results" id="results"></div>
+</div>
+</div>
+  <script>
+    // Date for the default End Date
+const today = new Date();
+const fiveYearsAgo = new Date();
+fiveYearsAgo.setFullYear(today.getFullYear() - 5);
+
+document.getElementById('start_date').value = fiveYearsAgo.toISOString().split('T')[0];
+document.getElementById('end_date').value = today.toISOString().split('T')[0];
+    
+    // Process Form Data
+ // Handle Portfolio Submit 
+function formatValue(val, isPercent = false) {
+  if (typeof val === "number") {
+    return isPercent ? (val * 100).toFixed(2) + "%" : val.toFixed(2);
+  } else if (typeof val === "object" && val !== null) {
+    // dictionary with pre_tax and post_tax
+    const pre = isPercent ? (val.pre_tax * 100).toFixed(2) + "%" : val.pre_tax.toFixed(2);
+    const post = isPercent ? (val.post_tax * 100).toFixed(2) + "%" : val.post_tax.toFixed(2);
+    return `Pre-tax: ${pre}<br>Post-tax: ${post}`;
+  }
+  return "N/A";
+}
+
+function createCard(title, obj) {
+  const card = document.createElement("div");
+  card.className = "card";
+
+  card.innerHTML = `
+    <h2>${title}</h2>
+    <div class="stats">
+      <p><strong>Return:</strong> ${formatValue(obj.ret, true)}</p>
+      <p><strong>Std Dev:</strong> ${formatValue(obj.std, true)}</p>
+	 <p><mark><strong>Sharpe:</strong> ${formatValue(obj.sharpe, false)}</mark></p>
+      <p><strong>Taxes Paid:</strong> $${obj.taxes_paid.toLocaleString()}</p>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Ticker</th><th>Allocation</th></tr>
+      </thead>
+      <tbody>
+        ${obj.portfolio.map(([ticker, value]) => `
+          <tr>
+            <td>${ticker}</td>
+            <td style="text-align:right">${value.toFixed(2)}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+  return card;
+}
+
+document.getElementById("uploadForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+        // Show the spinner
+    document.getElementById("loading").style.display = "block";
+
+    const form = e.target;
+    const formData = new FormData(form);
+
+    const response = await fetch("cgi-bin/process.py", {
+        method: "POST",
+        body: formData,
+    });
+
+    if (response.ok) {
+        const data = await response.json();
+
+        document.getElementById("resultsContainer").style.display = "block";
+        const container = document.getElementById("results");
+        container.innerHTML = ""; // clear old results
+
+        container.appendChild(createCard("What you have now", data.original));
+        container.appendChild(createCard("If you optimized ignoring taxes", data.optimized));
+        container.appendChild(createCard("If you optimized considering taxes", data.tax_optimized));
+    } else {
+        document.getElementById("results").innerHTML = "<p style='color:red'>Error submitting form.</p>";
+    }
+   document.getElementById("loading").style.display = "none";
+});
+
+
+  </script>
+</body>
+</html>
