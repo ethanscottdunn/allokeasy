@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/x-icon" href="allokeasy_favicon.ico">
+  <link rel="stylesheet" href="static/styles.css">
+  <title>Tax-Aware Portfolio Optimization - Instructions</title>
+</head>
+<body>
+
+  <div class='container'>
+    <nav>
+      <a href="index.html">&larr; Back to Home</a>
+    </nav>
+  <div class='card'>
+  <h1>Tax-Aware Portfolio Optimization</h1>
+
+  <p>There is no optimal portfolio, but that does not justify keeping 90% of your net worth in a single company.</p>
+
+  <blockquote>
+    <p><em>"But I don't want to pay taxes on my gains!"</em></p>
+  </blockquote>
+  <p>I know. Nor should you. Taxes cause a real drag on your portfolio, and you should trade off the impact it has on your returns.</p>
+
+  <blockquote>
+    <p><em>"But that's hard!"</em></p>
+  </blockquote>
+  <p>Not really. But this website makes it trivial. Here's how it works:</p>
+
+  <h2>How It Works</h2>
+  <ol>
+    <li>
+      Upload your portfolio holdings (Vanguard for now)
+      <ul>
+        <li>Go to <a href="https://www.vanguard.com" target="_blank">vanguard.com</a> and export your brokerage account holdings at the lot-level with cost basis information.</li>
+      </ul>
+    </li>
+    <li>
+      Fill in your income, filing status, and risk-free rate of return
+      <ul>
+        <li><strong>Income</strong> is required to calculate your marginal tax rate</li>
+        <li><strong>Filing Status</strong> is required to calculate your marginal tax rate</li>
+        <li><strong>Risk-Free Rate</strong> is required to calculate the Sharpe ratio and affects the optimization</li>
+      </ul>
+    </li>
+    <li>
+      Interpret the results!
+      <ul>
+        <li><strong>Original</strong>: Your current portfolio's performance metrics of return, standard deviation, and Sharpe ratio</li>
+        <li><strong>Optimized</strong>: The portfolio you should have if you didn't have to pay taxes, but shows how it would perform if you did</li>
+        <li><strong>Tax Optimized</strong>: The portfolio you should have, accounting for the impact of the taxes you would need to pay</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h2>Additional Information</h2>
+  <ol>
+    <li>Historical data is provided by free Yahoo Finance API calls, which is limited to a single daily close price.</li>
+    <li>
+      Portfolio holdings are uploaded at the lot-level, because selling different lots incurs different taxes. 
+      This optimization assumes you use a <strong>MinTax cost basis</strong>, selling the lots that incur the least taxes proportional to the dollar amount sold. 
+      This facilitates transferring money among asset classes while minimizing taxes. 
+      If you decide to act on these results, you would need to follow the same strategy for selling lots in order for the results to be accurate.
+    </li>
+
+
+  <h2>Feature Requests</h2>
+  <ol>
+    <li>Enable the user to consider optimizing across more assets than solely what was uploaded</li>
+  </ol>
+
+  <h2>Disclaimers</h2>
+  <ol>
+    <li>Invest at your own risk.</li>
+    <li>Past performance is not indicative of future results. It never has been and it never will be.</li>
+    <li>The optimizations here are based on historical results, and even then not guaranteed to be correct.</li>
+  </ol>
+  </div>
+  </div>
+</body>
+</html>
+
