@@ -27,6 +27,7 @@ Additional Information:
 Feature Requests:
 1) Enable the user to consider optimizing across more assets than solely what was uploaded
 2) Enable the user to set minimum and maximum bounds per ticker, as the optimization directly supports bounds easily
+3) Enable the user to select an amount of taxes owed, such as 0, and optimize constrained to that restriction
 
 Disclaimers:
 1) Invest at your own risk.
