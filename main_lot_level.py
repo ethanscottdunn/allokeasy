@@ -1,5 +1,6 @@
 import yfinance as yf
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.optimize import minimize
 from datetime import datetime, timedelta
@@ -100,22 +101,8 @@ def calculate_lot_based_tax(lots_by_ticker, target_weights, current_prices, inco
     total_tax = get_ltcg_tax(total_realized_gains, income, filing_status)
     return total_tax, lots_to_sell_by_ticker, lots_to_keep_by_ticker
 
-# def neg_sharpe_without_cost(weights):
-#     """Optimization function without tax consideration"""
-#     ret, std = portfolio_performance(weights)
-#     sharpe = (ret - risk_free_rate) / std
-#     return -sharpe
-
-# def neg_sharpe_with_lot_based_tax(weights):
-#     """Optimization function with lot-based tax consideration"""
-#     ret, std = portfolio_performance(weights)
-#     tax_cost, _, _ = calculate_lot_based_tax(lots_by_ticker, weights, current_prices, income, filing_status)
-#     adjusted_ret = ret - (tax_cost / total_portfolio_value)
-#     sharpe = (adjusted_ret - risk_free_rate) / std
-#     return -sharpe
-
-def compare_contrast_portfolios(csv_file_path, start_date, end_date, risk_free_rate, income, filing_status):
-    lots_by_ticker = parse_cost_basis_vanguard_csv(csv_file_path)
+def compare_contrast_portfolios(start_date, end_date, risk_free_rate, income, filing_status):
+    lots_by_ticker = parse_cost_basis_vanguard_csv()
     tickers = sorted(lots_by_ticker)
     mean_returns, cov_matrix, current_prices = get_yfinance_data(tickers, start_date, end_date)
     return [
@@ -132,7 +119,7 @@ def original_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, curren
     ret, std = portfolio_performance(current_weights, mean_returns, cov_matrix)
     sharpe = (ret - risk_free_rate) / std
 
-    return {'ret': ret, 'std': std, 'sharpe': sharpe, 'taxes_paid': 0.0, 'portfolio': [(ticker, current_weights[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
+    return {'value': total_portfolio_value, 'ret': ret, 'std': std, 'sharpe': sharpe, 'taxes_paid': 0.0, 'portfolio': [(ticker, current_weights[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
 
 def optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, current_prices, risk_free_rate, income, filing_status):
     total_portfolio_value = sum(sum(lot.quantity * current_prices[ticker] for lot in lots) for ticker, lots in lots_by_ticker.items())
@@ -158,7 +145,7 @@ def optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, curre
         sharpe_optimal = (ret_optimal - risk_free_rate) / std_optimal
         ret_optimal_post_tax = ret_optimal - tax_cost_optimal / total_portfolio_value
         sharpe_optimal_post_tax = (ret_optimal_post_tax - risk_free_rate) / std_optimal
-        return {'ret': {'pre_tax': ret_optimal, 'post_tax': ret_optimal_post_tax}, 'std': std_optimal, 'sharpe': {'pre_tax': sharpe_optimal, 'post_tax': sharpe_optimal_post_tax}, 'taxes_paid': tax_cost_optimal, 'portfolio': [(ticker, weights_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
+        return {'value': total_portfolio_value, 'ret': {'pre_tax': ret_optimal, 'post_tax': ret_optimal_post_tax}, 'std': std_optimal, 'sharpe': {'pre_tax': sharpe_optimal, 'post_tax': sharpe_optimal_post_tax}, 'taxes_paid': tax_cost_optimal, 'portfolio': [(ticker, weights_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
     else:
         print("Optimization failed.")
 
@@ -188,10 +175,64 @@ def tax_optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, c
         )
         adjusted_ret_tax_optimal = ret_tax_optimal - (tax_cost_tax_optimal / total_portfolio_value)
         sharpe_tax_optimal = (adjusted_ret_tax_optimal - risk_free_rate) / std_tax_optimal
-        return {'ret': adjusted_ret_tax_optimal, 'std': std_tax_optimal, 'sharpe': sharpe_tax_optimal, 'taxes_paid': tax_cost_tax_optimal, 'portfolio': [(ticker, weights_tax_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
+        return {'value': total_portfolio_value, 'ret': adjusted_ret_tax_optimal, 'std': std_tax_optimal, 'sharpe': sharpe_tax_optimal, 'taxes_paid': tax_cost_tax_optimal, 'portfolio': [(ticker, weights_tax_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
     else:
         print("Tax-aware optimization failed.")
 
+def plot_investments(portfolios, years=10):
+    """
+    portfolios: list of dicts with keys:
+        - start_value (float)
+        - annual_return (float, expected return per year, e.g. 0.06 for 6%)
+        - annual_std (float, standard deviation per year, e.g. 0.15 for 15%)
+        - label (str)
+        - color (str)
+    years: int, max horizon to plot
+    """
+
+    t = np.arange(0, years)
+
+    plt.figure(figsize=(10, 6))
+
+    for p in portfolios:
+        # Expected compounded growth
+        expected = p["start_value"] * (1 + p["annual_return"]) ** t
+        
+        # Std grows with sqrt(time), applied to compounded level
+        std_dev = expected * (p["annual_std"] * np.sqrt(t))
+        upper = expected + std_dev
+        lower = expected - std_dev
+
+        plt.plot(t, expected, label=p["label"], color=p["color"])
+        plt.fill_between(t, lower, upper, color=p["color"], alpha=0.2)
+
+        # Mark key horizons
+        # for horizon in [1, 2, 5, 10]:
+        #     if horizon <= years:
+        #         plt.scatter(horizon, expected[horizon-1], color=p["color"], s=40, marker='o')
+        #         plt.text(horizon, expected[horizon-1], f" {horizon}y", fontsize=8, color=p["color"])
+
+    plt.title("Investment Growth with Uncertainty Bands", fontsize=14)
+    plt.xlabel("Years")
+    plt.ylabel("Portfolio Value")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.6)
+    plt.show()
+
+
+
+
 if __name__ == "__main__":
-    compare_contrast_portfolios('2020-01-01', '2025-01-01', 0.02, 150000, 'single')
+    original, optimized, tax_optimized = compare_contrast_portfolios('2020-01-01', '2025-01-01', 0.02, 150000, 'single')
+    lots_by_ticker = parse_cost_basis_vanguard_csv()
+    tickers = sorted(lots_by_ticker)
+    mean_returns, cov_matrix, current_prices = get_yfinance_data(tickers, start_date, end_date)
+    total_portfolio_value = sum(sum(lot.quantity * current_prices[ticker] for lot in lots) for ticker, lots in lots_by_ticker.items())
+    portfolios = [
+        {"start_value": original['value'], "annual_return": original['ret'], "annual_std": original['std'], "label": "Current", "color": "blue"},
+        {"start_value": optimized['value'], "annual_return": optimized['ret']['pre_tax'], "annual_std": optimized['std'], "label": "Optimized Pre-Tax", "color": "red"},
+        {"start_value": optimized['value'] - optimized['taxes_paid'], "annual_return": optimized['ret']['post_tax'], "annual_std": optimized['std'], "label": "Optimized Post-Tax", "color": "orange"},
+        {"start_value": tax_optimized['value'] - tax_optimized['taxes_paid'], "annual_return": tax_optimized['ret'], "annual_std": tax_optimized['std'], "label": "Tax-Optimized", "color": "green"},
+    ]
+    plot_investments(portfolios, years=3)
 
