@@ -9,7 +9,8 @@ I know. Nor should you. Taxes cause a real drag on your portfolio, and you shoul
 Not really. But this website makes it trivial. Here's how it works:
 
 1) Upload your portfolio holdings (Vanguard for now)
-	a) Go to vanguard.com and export your brokerage account holdings at the lot-level with cost basis information
+	a) Go to cost-basis.web.vanguard.com/unrealized to export your brokerage account holdings at the lot-level with cost basis information
+	b) Save and upload this document. None of it is personal except perhaps the account number, which can just be removed. Do not change the structure of the csv or it may not be parsed properly.
 2) Fill in your income, filing status, and risk free rate of return
 	a) Income is required to calculate your marginal tax rate
 	b) Filing Status is required to calculate your marginal tax rate
@@ -25,8 +26,9 @@ Additional Information:
 
 Feature Requests:
 1) Enable the user to consider optimizing across more assets than solely what was uploaded
+2) Enable the user to set minimum and maximum bounds per ticker, as the optimization directly supports bounds easily
 
 Disclaimers:
 1) Invest at your own risk.
 2) Past performance is not indicative of future results. It never has been and it never will be.
-3) The optimizations here are based on historical results, and even then not guaranteed to be correct.
+3) The optimizations here are based on historical results, and even then not guaranteed to be correct. You can verify the code for yourself at https://github.com/ethanscottdunn/allokeasy
