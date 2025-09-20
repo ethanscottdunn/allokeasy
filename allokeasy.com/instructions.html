@@ -14,7 +14,15 @@
       <a href="index.html">&larr; Back to Home</a>
     </nav>
   <div class='card'>
-  <h1>Tax-Aware Portfolio Optimization</h1>
+
+  <h1>Basics</h1>
+
+  <p>The Sharpe ratio is the difference between your portfolio's performance and the risk free rate, all divided by the standard deviation of the portfolio returns.</p>
+  <p>If that's too confusing, just know that a higher Sharpe ratio is better, because it means higher returns and lower volatility.</p>
+  <p>Given expected returns and correlations among a set of securities (a financial instrument that can be bought or sold), this value can be maximized using historical data.</p>
+  <p>Plenty of websites already do this today, such as <a href="https://www.portfoliovisualizer.com" target="_blank">portfoliovisualizer.com</a> (although they provide a suite of useful tools and might be intimidating). To my knowledge, no tools actually consider the tax implications of selling positions to reallocate your portfolio. This website accomplishes this by decreasing the returns in the optimization function in accordance with the taxes you would owe based on your income and tax filing status.</p>
+
+  <h1>Instructions</h1>
 
   <p>There is no optimal portfolio, but that does not justify keeping 90% of your net worth in a single company.</p>
 
@@ -33,15 +41,15 @@
     <li>
       Upload your portfolio holdings (Vanguard for now)
       <ul>
-        <li>Go to <a href="https://www.vanguard.com" target="_blank">vanguard.com</a> and export your brokerage account holdings at the lot-level with cost basis information.</li>
+        <li>Go to <a href="https://www.vanguard.com" target="_blank">vanguard.com</a> and export your brokerage account holdings at the lot-level with cost basis information. You can change the information inside in any way, but the code that parses it expects two lines of headers followed by a table that includes columns  </li>
       </ul>
     </li>
     <li>
-      Fill in your income, filing status, and risk-free rate of return
+      Fill in your income, filing status, and risk-free rate of return.
       <ul>
         <li><strong>Income</strong> is required to calculate your marginal tax rate</li>
         <li><strong>Filing Status</strong> is required to calculate your marginal tax rate</li>
-        <li><strong>Risk-Free Rate</strong> is required to calculate the Sharpe ratio and affects the optimization</li>
+        <li><strong>Risk-Free Rate</strong> is required to calculate the Sharpe ratio and can affect the optimization but probably will not for reasonable choices</li>
       </ul>
     </li>
     <li>
@@ -67,14 +75,17 @@
 
   <h2>Feature Requests</h2>
   <ol>
-    <li>Enable the user to consider optimizing across more assets than solely what was uploaded</li>
+    <li>Enable optimizing across more assets than solely what was uploaded</li>
+    <li>Enable setting minimum and maximum bounds on each security</li>
+    <li>Provide graphs demonstrating expected returns considering taxes owed, and the break-even time horizons</li>
   </ol>
 
   <h2>Disclaimers</h2>
   <ol>
     <li>Invest at your own risk.</li>
     <li>Past performance is not indicative of future results. It never has been and it never will be.</li>
-    <li>The optimizations here are based on historical results, and even then not guaranteed to be correct.</li>
+    <li>The optimizations here are based on historical results, and even then the code could be incorrect.</li>
+    <li>Past performance calculation is based on data from Yahoo Finance's free APIs</li>
   </ol>
   </div>
   </div>

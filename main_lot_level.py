@@ -190,37 +190,47 @@ def plot_investments(portfolios, years=10):
     years: int, max horizon to plot
     """
 
-    t = np.arange(0, years)
+    t = np.arange(0, years + 1)
 
     plt.figure(figsize=(10, 6))
+
+    growth_curves = {}
 
     for p in portfolios:
         # Expected compounded growth
         expected = p["start_value"] * (1 + p["annual_return"]) ** t
-        
-        # Std grows with sqrt(time), applied to compounded level
-        std_dev = expected * (p["annual_std"] * np.sqrt(t))
-        upper = expected + std_dev
-        lower = expected - std_dev
+        growth_curves[p["label"]] = expected
 
+        # Plot without shading
         plt.plot(t, expected, label=p["label"], color=p["color"])
-        plt.fill_between(t, lower, upper, color=p["color"], alpha=0.2)
 
-        # Mark key horizons
-        # for horizon in [1, 2, 5, 10]:
-        #     if horizon <= years:
-        #         plt.scatter(horizon, expected[horizon-1], color=p["color"], s=40, marker='o')
-        #         plt.text(horizon, expected[horizon-1], f" {horizon}y", fontsize=8, color=p["color"])
+    # --- Find intersection between "Current" and "Tax-Optimized" ---
+    if "Current" in growth_curves and "Tax-Optimized" in growth_curves:
+        current = growth_curves["Current"]
+        tax_opt = growth_curves["Tax-Optimized"]
 
-    plt.title("Investment Growth with Uncertainty Bands", fontsize=14)
+        # Look for sign change in the difference
+        diff = tax_opt - current
+        for i in range(1, len(t)):
+            if diff[i-1] * diff[i] <= 0:  # sign change → intersection
+                # Linear interpolation for better accuracy
+                x0, x1 = t[i-1], t[i]
+                y0, y1 = diff[i-1], diff[i]
+                intersect_x = x0 - y0 * (x1 - x0) / (y1 - y0)
+                intersect_y = np.interp(intersect_x, t, tax_opt)
+
+                # Add vertical line & label
+                plt.axvline(intersect_x, color="gray", linestyle="--", alpha=0.7)
+                plt.text(intersect_x, plt.ylim()[1]*0.95, f"{intersect_x:.2f} yrs",
+                         rotation=90, va="top", ha="right", fontsize=9, color="gray")
+                break  # stop at first intersection
+
+    plt.title("Investment Growth Comparison", fontsize=14)
     plt.xlabel("Years")
     plt.ylabel("Portfolio Value")
     plt.legend()
     plt.grid(True, linestyle="--", alpha=0.6)
     plt.show()
-
-
-
 
 if __name__ == "__main__":
     original, optimized, tax_optimized = compare_contrast_portfolios('2020-01-01', '2025-01-01', 0.02, 150000, 'single')
