@@ -7,6 +7,9 @@ import random
 #from csv_parser.vanguard import Lot, parse_cost_basis_vanguard_csv
 from utils.vanguard import Lot, parse_cost_basis_vanguard_csv
 
+#plotting
+import matplotlib.pyplot as plt
+
 # --- Setup ---
 # tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
 tickers = ['VASGX', 'VEMAX', 'VFIAX', 'VSIAX', 'VGPMX', 'VSGAX', 'VTSAX']
@@ -133,7 +136,7 @@ def original_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, curren
     ret, std = portfolio_performance(current_weights, mean_returns, cov_matrix)
     sharpe = (ret - risk_free_rate) / std
 
-    return {'ret': ret, 'std': std, 'sharpe': sharpe, 'taxes_paid': 0.0, 'portfolio': [(ticker, current_weights[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
+    return {'value': total_portfolio_value, 'ret': ret, 'std': std, 'sharpe': sharpe, 'taxes_paid': 0.0, 'portfolio': [(ticker, current_weights[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
 
 def optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, current_prices, risk_free_rate, income, filing_status):
     total_portfolio_value = sum(sum(lot.quantity * current_prices[ticker] for lot in lots) for ticker, lots in lots_by_ticker.items())
@@ -159,7 +162,7 @@ def optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, curre
         sharpe_optimal = (ret_optimal - risk_free_rate) / std_optimal
         ret_optimal_post_tax = ret_optimal - tax_cost_optimal / total_portfolio_value
         sharpe_optimal_post_tax = (ret_optimal_post_tax - risk_free_rate) / std_optimal
-        return {'ret': {'pre_tax': ret_optimal, 'post_tax': ret_optimal_post_tax}, 'std': std_optimal, 'sharpe': {'pre_tax': sharpe_optimal, 'post_tax': sharpe_optimal_post_tax}, 'taxes_paid': tax_cost_optimal, 'portfolio': [(ticker, weights_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
+        return {'value': total_portfolio_value, 'ret': {'pre_tax': ret_optimal, 'post_tax': ret_optimal_post_tax}, 'std': std_optimal, 'sharpe': {'pre_tax': sharpe_optimal, 'post_tax': sharpe_optimal_post_tax}, 'taxes_paid': tax_cost_optimal, 'portfolio': [(ticker, weights_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
     else:
         print("Optimization failed.")
 
@@ -189,10 +192,77 @@ def tax_optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, c
         )
         adjusted_ret_tax_optimal = ret_tax_optimal - (tax_cost_tax_optimal / total_portfolio_value)
         sharpe_tax_optimal = (adjusted_ret_tax_optimal - risk_free_rate) / std_tax_optimal
-        return {'ret': adjusted_ret_tax_optimal, 'std': std_tax_optimal, 'sharpe': sharpe_tax_optimal, 'taxes_paid': tax_cost_tax_optimal, 'portfolio': [(ticker, weights_tax_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
+        return {'value': total_portfolio_value, 'ret': adjusted_ret_tax_optimal, 'std': std_tax_optimal, 'sharpe': sharpe_tax_optimal, 'taxes_paid': tax_cost_tax_optimal, 'portfolio': [(ticker, weights_tax_optimal[i] * total_portfolio_value) for i, ticker in enumerate(tickers)]}
     else:
         print("Tax-aware optimization failed.")
 
-if __name__ == "__main__":
-    compare_contrast_portfolios('2020-01-01', '2025-01-01', 0.02, 150000, 'single')
+def plot_investments(portfolios, years=10):
+    """
+    portfolios: list of dicts with keys:
+        - start_value (float)
+        - annual_return (float, expected return per year, e.g. 0.06 for 6%)
+        - annual_std (float, standard deviation per year, e.g. 0.15 for 15%)
+        - label (str)
+        - color (str)
+    years: int, max horizon to plot
+    """
 
+    t = np.arange(0, years + 1)
+
+    plt.figure(figsize=(10, 6))
+
+    growth_curves = {}
+
+    for p in portfolios:
+        # Expected compounded growth
+        expected = p["start_value"] * (1 + p["annual_return"]) ** t
+        growth_curves[p["label"]] = expected
+
+        # Plot without shading
+        plt.plot(t, expected, label=p["label"], color=p["color"])
+
+
+    # --- Find intersection between "Current" and "Tax-Optimized" ---
+    if "Current" in growth_curves and "Tax-Optimized" in growth_curves:
+        current = growth_curves["Current"]
+        tax_opt = growth_curves["Tax-Optimized"]
+
+        # Look for sign change in the difference
+        diff = tax_opt - current
+        for i in range(1, len(t)):
+            if diff[i-1] * diff[i] <= 0:  # sign change → intersection
+                # Linear interpolation for better accuracy
+                x0, x1 = t[i-1], t[i]
+                y0, y1 = diff[i-1], diff[i]
+                intersect_x = x0 - y0 * (x1 - x0) / (y1 - y0)
+                intersect_y = np.interp(intersect_x, t, tax_opt)
+
+                # Add vertical line & label
+                plt.axvline(intersect_x, color="gray", linestyle="--", alpha=0.7)
+                plt.text(intersect_x, plt.ylim()[1]*0.95, f"{intersect_x:.2f} yrs",
+                         rotation=90, va="top", ha="right", fontsize=9, color="gray")
+                break  # stop at first intersection
+
+    plt.title("Investment Growth Comparison", fontsize=14)
+    plt.xlabel("Years")
+    plt.ylabel("Portfolio Value")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.6)
+    #plt.show()
+    plt.savefig("returns_comparison_plot.svg")
+
+if __name__ == "__main__":
+    #compare_contrast_portfolios('2020-01-01', '2025-01-01', 0.02, 150000, 'single')
+
+    original, optimized, tax_optimized = compare_contrast_portfolios('2020-01-01', '2025-01-01', 0.02, 150000, 'single')
+    lots_by_ticker = parse_cost_basis_vanguard_csv()
+    tickers = sorted(lots_by_ticker)
+    mean_returns, cov_matrix, current_prices = get_yfinance_data(tickers, start_date, end_date)
+    total_portfolio_value = sum(sum(lot.quantity * current_prices[ticker] for lot in lots) for ticker, lots in lots_by_ticker.items())
+    portfolios = [
+        {"start_value": original['value'], "annual_return": original['ret'], "annual_std": original['std'], "label": "Current", "color": "blue"},
+        {"start_value": optimized['value'], "annual_return": optimized['ret']['pre_tax'], "annual_std": optimized['std'], "label": "Optimized Pre-Tax", "color": "red"},
+        {"start_value": optimized['value'] - optimized['taxes_paid'], "annual_return": optimized['ret']['post_tax'], "annual_std": optimized['std'], "label": "Optimized Post-Tax", "color": "orange"},
+        {"start_value": tax_optimized['value'] - tax_optimized['taxes_paid'], "annual_return": tax_optimized['ret'], "annual_std": tax_optimized['std'], "label": "Tax-Optimized", "color": "green"},
+    ]
+    plot_investments(portfolios, years=3)

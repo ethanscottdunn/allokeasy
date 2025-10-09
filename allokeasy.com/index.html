@@ -111,6 +111,8 @@ document.getElementById("uploadForm").addEventListener("submit", async function(
         document.getElementById("resultsContainer").style.display = "block";
         const container = document.getElementById("results");
         container.innerHTML = ""; // clear old results
+        
+        container.appendChild("<img src='returns_comparison_plot.svg' alt='Plot'>");
 
         container.appendChild(createCard("What you have now", data.original));
         container.appendChild(createCard("If you optimized ignoring taxes", data.optimized));
