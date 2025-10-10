@@ -249,7 +249,7 @@ def plot_investments(portfolios, years=10):
     plt.legend()
     plt.grid(True, linestyle="--", alpha=0.6)
     #plt.show()
-    plt.savefig("returns_comparison_plot.svg")
+    plt.savefig("../returns_comparison_plot.svg")
 
 if __name__ == "__main__":
     #compare_contrast_portfolios('2020-01-01', '2025-01-01', 0.02, 150000, 'single')

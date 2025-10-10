@@ -36,6 +36,7 @@
     <button type="submit">Submit</button>
   </form>
 </div>
+<div clas="card" id="graphs"></div>
 <div class="card" id="resultsContainer">
   <div class="results" id="results"></div>
 </div>
@@ -109,11 +110,16 @@ document.getElementById("uploadForm").addEventListener("submit", async function(
         const data = await response.json();
 
         document.getElementById("resultsContainer").style.display = "block";
+        const graphContainer = document.getElementById("graphs");
+        // --- Create a card with the image ---
+        const imgCard = document.createElement("div");
+        imgCard.classList.add("card"); // optional, if you want same styling
+        imgCard.innerHTML = `<img src="returns_comparison_plot.svg" alt="Plot" style="max-width:100%;">`;
+        graphContainer.appendChild(imgCard);
+
         const container = document.getElementById("results");
         container.innerHTML = ""; // clear old results
         
-        container.appendChild("<img src='returns_comparison_plot.svg' alt='Plot'>");
-
         container.appendChild(createCard("What you have now", data.original));
         container.appendChild(createCard("If you optimized ignoring taxes", data.optimized));
         container.appendChild(createCard("If you optimized considering taxes", data.tax_optimized));

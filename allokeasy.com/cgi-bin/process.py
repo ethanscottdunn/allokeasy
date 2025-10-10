@@ -15,6 +15,7 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 #from utils import test
 #from utils import main_lot_level
 from utils.main_lot_level import compare_contrast_portfolios, plot_investments, get_yfinance_data
+from utils.vanguard import parse_cost_basis_vanguard_csv
 
 cgitb.enable()  # for debugging in browser
 
@@ -48,7 +49,8 @@ if csvfile.file:
 csv_file = io_string
 # ---- Compute the portfolios  ----
 no_change, from_scratch, tax_optimized = compare_contrast_portfolios(csv_file, start_date, end_date, risk_free_rate, income, status)
-lots_by_ticker = parse_cost_basis_vanguard_csv()
+csv_file = io.StringIO(csv_text)
+lots_by_ticker = parse_cost_basis_vanguard_csv(csv_file)
 tickers = sorted(lots_by_ticker)
 mean_returns, cov_matrix, current_prices = get_yfinance_data(tickers, start_date, end_date)
 total_portfolio_value = sum(sum(lot.quantity * current_prices[ticker] for lot in lots) for ticker, lots in lots_by_ticker.items())
