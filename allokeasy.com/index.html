@@ -71,6 +71,7 @@ function createCard(title, obj) {
   card.innerHTML = `
     <h2>${title}</h2>
     <div class="stats">
+      <p><strong>Portfolio Value:</strong> $${obj.value.toLocaleString()}</p>
       <p><strong>Return:</strong> ${formatValue(obj.ret, true)}</p>
       <p><strong>Std Dev:</strong> ${formatValue(obj.std, true)}</p>
 	 <p><mark><strong>Sharpe:</strong> ${formatValue(obj.sharpe, false)}</mark></p>
@@ -110,11 +111,17 @@ document.getElementById("uploadForm").addEventListener("submit", async function(
         const data = await response.json();
 
         document.getElementById("resultsContainer").style.display = "block";
+
+        // Clear previous graphs
         const graphContainer = document.getElementById("graphs");
+        graphContainer.innerHTML = ""; // clear old graphs
+
         // --- Create a card with the image ---
         const imgCard = document.createElement("div");
         imgCard.classList.add("card"); // optional, if you want same styling
-        imgCard.innerHTML = `<img src="returns_comparison_plot.svg" alt="Plot" style="max-width:100%;">`;
+        // Add timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        imgCard.innerHTML = `<img src="returns_comparison_plot.svg?t=${timestamp}" alt="Plot" style="max-width:100%;">`;
         graphContainer.appendChild(imgCard);
 
         const container = document.getElementById("results");

@@ -8,6 +8,8 @@ import random
 from utils.vanguard import Lot, parse_cost_basis_vanguard_csv
 
 #plotting
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for CGI
 import matplotlib.pyplot as plt
 
 # --- Setup ---
@@ -207,6 +209,10 @@ def plot_investments(portfolios, years=10):
     years: int, max horizon to plot
     """
 
+    # Clear any previous plots
+    plt.clf()
+    plt.close('all')
+
     t = np.arange(0, years + 1)
 
     plt.figure(figsize=(10, 6))
@@ -250,6 +256,7 @@ def plot_investments(portfolios, years=10):
     plt.grid(True, linestyle="--", alpha=0.6)
     #plt.show()
     plt.savefig("../returns_comparison_plot.svg")
+    plt.close()  # Clean up the figure
 
 if __name__ == "__main__":
     #compare_contrast_portfolios('2020-01-01', '2025-01-01', 0.02, 150000, 'single')
