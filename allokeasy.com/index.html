@@ -59,23 +59,35 @@ function formatValue(val, isPercent = false) {
     // dictionary with pre_tax and post_tax
     const pre = isPercent ? (val.pre_tax * 100).toFixed(2) + "%" : val.pre_tax.toFixed(2);
     const post = isPercent ? (val.post_tax * 100).toFixed(2) + "%" : val.post_tax.toFixed(2);
-    return `Pre-tax: ${pre}<br>Post-tax: ${post}`;
+    return `<span style="color: red;">Pre-tax: ${pre}</span><br><span style="color: orange;">Post-tax: ${post}</span>`;
   }
   return "N/A";
 }
 
-function createCard(title, obj) {
+function createCard(title, obj, color) {
   const card = document.createElement("div");
   card.className = "card";
 
+  // Apply header color only if color is provided (not null)
+  const headerStyle = color ? `style="color: ${color}; border-bottom: 3px solid ${color}; padding-bottom: 0.5rem;"` : 'style="padding-bottom: 0.5rem;"';
+
   card.innerHTML = `
-    <h2>${title}</h2>
+    <h2 ${headerStyle}>${title}</h2>
     <div class="stats">
-      <p><strong>Portfolio Value:</strong> $${obj.value.toLocaleString()}</p>
-      <p><strong>Return:</strong> ${formatValue(obj.ret, true)}</p>
-      <p><strong>Std Dev:</strong> ${formatValue(obj.std, true)}</p>
-	 <p><mark><strong>Sharpe:</strong> ${formatValue(obj.sharpe, false)}</mark></p>
-      <p><strong>Taxes Paid:</strong> $${obj.taxes_paid.toLocaleString()}</p>
+      <div class="stat-label">Portfolio Value:</div>
+      <div class="stat-value">$${obj.value.toLocaleString()}</div>
+
+      <div class="stat-label">Return:</div>
+      <div class="stat-value">${formatValue(obj.ret, true)}</div>
+
+      <div class="stat-label">Std Dev:</div>
+      <div class="stat-value">${formatValue(obj.std, true)}</div>
+
+      <div class="stat-label"><mark>Sharpe:</mark></div>
+      <div class="stat-value"><mark>${formatValue(obj.sharpe, false)}</mark></div>
+
+      <div class="stat-label">Taxes Paid:</div>
+      <div class="stat-value">$${obj.taxes_paid.toLocaleString()}</div>
     </div>
     <table>
       <thead>
@@ -126,10 +138,10 @@ document.getElementById("uploadForm").addEventListener("submit", async function(
 
         const container = document.getElementById("results");
         container.innerHTML = ""; // clear old results
-        
-        container.appendChild(createCard("What you have now", data.original));
-        container.appendChild(createCard("If you optimized ignoring taxes", data.optimized));
-        container.appendChild(createCard("If you optimized considering taxes", data.tax_optimized));
+
+        container.appendChild(createCard("What you have now", data.original, "blue"));
+        container.appendChild(createCard("If you optimized ignoring taxes", data.optimized, "orange"));
+        container.appendChild(createCard("If you optimized considering taxes", data.tax_optimized, "green"));
     } else {
         document.getElementById("results").innerHTML = "<p style='color:red'>Error submitting form.</p>";
     }

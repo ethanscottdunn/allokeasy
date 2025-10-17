@@ -69,9 +69,21 @@ ul {
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
 
-.stats p {
-  margin: 4px 0;
+.stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  align-items: start;
   font-size: 14px;
+}
+
+.stat-label {
+  font-weight: bold;
+  text-align: right;
+}
+
+.stat-value {
+  text-align: left;
 }
 
 table {
@@ -107,6 +119,20 @@ align-items: stretch; /* makes cards equal height */
 #results .card {
   display: flex;
   flex-direction: column;
+}
+
+#results .card h2 {
+  min-height: 3em;
+  display: flex;
+  align-items: center;
+}
+
+#results .card .stats {
+  flex-grow: 1;
+}
+
+#results .card table {
+  margin-top: auto;
 }
 
 .spinner {
