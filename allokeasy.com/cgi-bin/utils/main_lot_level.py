@@ -67,7 +67,7 @@ def portfolio_performance(weights, mean_returns, cov_matrix):
     std = np.sqrt(weights.T @ cov_matrix.values @ weights)
     return ret, std
 
-def calculate_lot_based_tax(lots_by_ticker, target_weights, current_prices, income, filing_status):
+def calculate_lot_based_tax(lots_by_ticker, target_weights, current_prices, income, filing_status, tickers):
 
     total_portfolio_value = sum(sum(lot.quantity * current_prices[ticker] for lot in lots) for ticker, lots in lots_by_ticker.items())
     target_values = {ticker: target_weights[i] * total_portfolio_value for i, ticker in enumerate(tickers)}
@@ -158,7 +158,7 @@ def optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, curre
     if result_optimal.success:
         weights_optimal = result_optimal.x
         ret_optimal, std_optimal = portfolio_performance(weights_optimal, mean_returns, cov_matrix)
-        tax_cost_optimal, _, _ = calculate_lot_based_tax(lots_by_ticker, weights_optimal, current_prices, income, filing_status)
+        tax_cost_optimal, _, _ = calculate_lot_based_tax(lots_by_ticker, weights_optimal, current_prices, income, filing_status, tickers)
         sharpe_optimal = (ret_optimal - risk_free_rate) / std_optimal
         ret_optimal_post_tax = ret_optimal - tax_cost_optimal / total_portfolio_value
         sharpe_optimal_post_tax = (ret_optimal_post_tax - risk_free_rate) / std_optimal
@@ -173,7 +173,7 @@ def tax_optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, c
     constraints = {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}
     bounds = tuple((0, 1) for _ in tickers)
 
-    neg_sharpe_with_lot_based_tax = lambda w: -(((np.dot(w, mean_returns) - (calculate_lot_based_tax(lots_by_ticker, w, current_prices, income, filing_status)[0] / total_portfolio_value) - risk_free_rate)
+    neg_sharpe_with_lot_based_tax = lambda w: -(((np.dot(w, mean_returns) - (calculate_lot_based_tax(lots_by_ticker, w, current_prices, income, filing_status, tickers)[0] / total_portfolio_value) - risk_free_rate)
     / np.sqrt(np.dot(w.T, np.dot(cov_matrix, w)))))
 
     result_tax_optimal = minimize(
@@ -188,7 +188,7 @@ def tax_optimized_portfolio(tickers, lots_by_ticker, mean_returns, cov_matrix, c
         weights_tax_optimal = result_tax_optimal.x
         ret_tax_optimal, std_tax_optimal = portfolio_performance(weights_tax_optimal, mean_returns, cov_matrix)
         tax_cost_tax_optimal, lots_to_sell_tax_optimal, lots_to_keep_tax_optimal = calculate_lot_based_tax(
-            lots_by_ticker, weights_tax_optimal, current_prices, income, filing_status
+            lots_by_ticker, weights_tax_optimal, current_prices, income, filing_status, tickers
         )
         adjusted_ret_tax_optimal = ret_tax_optimal - (tax_cost_tax_optimal / total_portfolio_value)
         sharpe_tax_optimal = (adjusted_ret_tax_optimal - risk_free_rate) / std_tax_optimal
